@@ -31,23 +31,24 @@ namespace TowerUniteMidiDotNet.Core
 			KeyCode = (VirtualKeyCode)KeyInterop.VirtualKeyFromKey(key);
 		}
 
-		public void Play()
-		{
-			if (!IsShiftedKey)
-			{
-				inputSim.Keyboard.KeyDown(KeyCode);
-				inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
-				inputSim.Keyboard.KeyUp(KeyCode);
-			}
-			else
-			{
-				inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
-				inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
-				inputSim.Keyboard.KeyDown(KeyCode);
-				inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
-				inputSim.Keyboard.KeyUp(KeyCode);
-				inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
-			}
-		}
-	}
+        public void Play()
+        {
+            if (!IsShiftedKey)
+            {
+                inputSim.Keyboard.KeyDown(KeyCode);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.KeyUp(KeyCode);
+            }
+            else
+            {
+                inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay / 2);  // reduce delay here
+                inputSim.Keyboard.KeyDown(KeyCode);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay / 2);  // add a small delay here
+                inputSim.Keyboard.KeyUp(KeyCode);
+                inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
+            }
+        }
+
+    }
 }
