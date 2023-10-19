@@ -1,15 +1,20 @@
-# Tower Unite MIDI .NET
+# Tower Unite MIDI .NET 1.2
 
 ## What is Tower Unite MIDI .NET?
-This program was created due to a lack of options for using a MIDI piano with Tower Unite. Native support has been in the talks for years, but so far there hasn't been any notable progress. Tower Unite MIDI .NET will convert any MIDI devices input into something Tower Unite can read. Due to popular request during development, playback of MIDI files has also been implemented.
 
-Tower Unite MIDI .NET is written in C# and heavily utilises the [DryWetMidi](https://github.com/melanchall/drywetmidi) library.
+Tower Unite MIDI .NET, originally developed by Bailey Eaton (Yoshify), serves as a gateway for MIDI-enabled devices to passthrough to the game Tower Unite, allowing players to play the in-game piano using real-life MIDI devices. My update has introduced key optimizations and improvements to augment its performance and stability:
 
-## Okay, how do I use it? 
-Using Tower Unite MIDI .NET is simple!
+1. Improved Stability: Addressed and fixed prevalent crash issues. By wrapping certain functionalities in try/catch blocks, introducing strategic logging, and enhancing playback completion handling, the application's overall resilience has been significantly enhanced. Fixed a significant crash upon finishing playback of a MIDI file.
+2. Latency Optimization: Recognizing the challenges posed by latency, particularly in connections prone to lag, I've augmented key delay functionality. This results in a reduced number of missed notes due to latency.
+3. Code Refinements: Modifications include cleaner code practices and enhanced comments, aiming for a more readable and maintainable codebase.
+4. Quality of Life: Added a feature for the program to remember the last directory from which the user has played a MIDI file.
+
+With these improvements, Tower Unite MIDI .NET 1.2 offers players a smoother, stable, more reliable experience.
+
+## How do I use it? 
 
 1. Obtain the latest release from the "Releases" page.
-2. Extract the archive into it's own folder.
+2. Extract the archive into its own folder.
 3. Run the program.
 4. You'll notice 2 tabs in the program, **MIDI Device Setup** and **MIDI Playback**. **MIDI Device Setup** is your go-to tab for setting up and using your MIDI devices, where as **MIDI Playback** is the tab you'll need for playing back MIDI files.
 5. **MIDI Device Setup**
@@ -42,28 +47,19 @@ open your Tower Unite window and hit the **F1** key.
    7B. Detailed Logging
    
       Enables the logging of events such as MIDI key presses.
-      
-## Doesn't a program like this already exist?
-[Yes, it was written in python by a steam user called Mattio](https://steamcommunity.com/sharedfiles/filedetails/?id=673866155). This was great for a while, but my reason for creating this alternative is primarily because Mattio's version had some limitations.
-1. It hasn't been updated in 2 years.
-2. It required devices to specifically use MIDI channel 1.
-3. It very rarely had good black key presses.
-4. It didn't offer MIDI playback.
-
-My program not only solves these limitations, but offers a fair bit more in terms of functionality.
-
-## Isn't automation software against the rules?
-Macroing is a touchy subject in Tower Unite. [As stated here](https://forums.pixeltailgames.com/t/regarding-piano-macros/14111/15) by the lead developer of Tower Unite, piano macro's are okay, and I've personally never experienced an issue during testing. Even though this software doesn't inject anything and only sends keypresses, I'd still take care as Tower Unite is VAC protected, and VAC doesn't discriminate. Please always make sure to take care in starting and stopping the software only while you're on the piano, and as always, this software is used at your own risk.
 
 ## Known Issues
 1. Sometimes, you may be required to spam the "stop" key or button when playing a MIDI, though I've rarely encountered this and cannot reliably replicate it.
-2. Currently only supports a QWERTY keyboard layout. I'll make other layouts such as AZERTY if demand is high enough.
+2. Currently only supports a QWERTY keyboard layout.
 
 ## Reporting an issue
-Please either raise an issue here on Github, or [email me.](mailto:xyoshify@gmail.com)
+Please either raise an issue here on Github, message me on Twitter (@xelapilled) or Discord (xelapilled), or [email me.](xela@xela.contact)
 
 ## Upcoming
-Nothing is currently planned. Please let me know if you have any idea's for future features!
+- Pause and play
+- Improved black key recognition
+- Adjustable speed during MIDI playback
+- Forward/backward functionality
 
 ## License
 MIT License
