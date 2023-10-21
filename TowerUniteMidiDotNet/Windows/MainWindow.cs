@@ -23,12 +23,12 @@ namespace TowerUniteMidiDotNet.Windows
 		private int midiTransposition = 0;
 		private double midiPlaybackSpeed = 1.0;
 		private Dictionary<int, Note> noteLookup;
-		private Keys startKey = Keys.F1;
-		private Keys stopKey = Keys.F2;
+		private readonly Keys startKey = Keys.F1;
+		private readonly Keys stopKey = Keys.F2;
         private bool isMidiPlaying = false;
 
         //It's called this because I plan on adding AZERTY support. Eventually...
-        private List<char> qwertyLookup = new List<char>()
+        private readonly List<char> qwertyLookup = new List<char>()
 		{
 			'1','!','2','@','3','4','$','5','%','6','^','7',
 			'8','*','9','(','0','q','Q','w','W','e','E','r',
@@ -71,8 +71,8 @@ namespace TowerUniteMidiDotNet.Windows
 				HotkeyManager.Current.AddOrReplace("Start", startKey, OnHotkeyPress);
 				HotkeyManager.Current.AddOrReplace("Stop", stopKey, OnHotkeyPress);
 			}
-			catch (NHotkey.HotkeyAlreadyRegisteredException ex)
-			{
+			catch (NHotkey.HotkeyAlreadyRegisteredException)
+            {
 				// strange error I got once and I can't tell if it will happen again -x
 				MessageBox.Show("A hotkey is already in use! Please report this to @xelapilled on Twitter.");
 			}
@@ -490,11 +490,11 @@ namespace TowerUniteMidiDotNet.Windows
 		{
 			if (MIDIPlaybackTransposeSlider.Value > 0)
 			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"+{MIDIPlaybackTransposeSlider.Value.ToString()} semitones");
+				ToolTipController.SetToolTip((TrackBar)sender, $"+{MIDIPlaybackTransposeSlider.Value} semitones");
 			}
 			else
 			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"{MIDIPlaybackTransposeSlider.Value.ToString()} semitones");
+				ToolTipController.SetToolTip((TrackBar)sender, $"{MIDIPlaybackTransposeSlider.Value} semitones");
 			}
 
 			midiTransposition = MIDIPlaybackTransposeSlider.Value;
@@ -504,17 +504,17 @@ namespace TowerUniteMidiDotNet.Windows
 		{
 			if (OctaveTranspositionSlider.Value > 0)
 			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"+{OctaveTranspositionSlider.Value.ToString()} octaves");
+				ToolTipController.SetToolTip((TrackBar)sender, $"+{OctaveTranspositionSlider.Value} octaves");
 			}
 			else
 			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"{OctaveTranspositionSlider.Value.ToString()} octaves");
+				ToolTipController.SetToolTip((TrackBar)sender, $"{OctaveTranspositionSlider.Value} octaves");
 			}
 
 			noteLookupOctaveTransposition = 3 + OctaveTranspositionSlider.Value;
 			BuildNoteDictionary();
 		}
-		private void creditsToolStripMenuItem_Click(object sender, EventArgs e)
+		private void CreditsToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			using (var creditsForm = new CreditsForm())
 			{

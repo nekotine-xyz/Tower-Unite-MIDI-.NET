@@ -13,7 +13,7 @@ namespace TowerUniteMidiDotNet.Core
 		public readonly char NoteCharacter;
 		public readonly VirtualKeyCode KeyCode;
 		public readonly bool IsShiftedKey;
-		private InputSimulator inputSim = new InputSimulator();
+		private readonly InputSimulator inputSim = new InputSimulator();
 
 		/// <summary>
 		/// Creates a new Note object.

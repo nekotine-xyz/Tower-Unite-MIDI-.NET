@@ -355,9 +355,9 @@
             // creditsToolStripMenuItem
             // 
             this.creditsToolStripMenuItem.Name = "creditsToolStripMenuItem";
-            this.creditsToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.creditsToolStripMenuItem.Size = new System.Drawing.Size(169, 34);
             this.creditsToolStripMenuItem.Text = "Credits";
-            this.creditsToolStripMenuItem.Click += new System.EventHandler(this.creditsToolStripMenuItem_Click);
+            this.creditsToolStripMenuItem.Click += new System.EventHandler(this.CreditsToolStripMenuItem_Click);
             // 
             // MainWindow
             // 
