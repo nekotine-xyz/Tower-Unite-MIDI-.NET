@@ -47,12 +47,20 @@ namespace TowerUniteMidiDotNet.Core
         {
             if (IsShiftedKey)
             {
-                inputSim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.LSHIFT, KeyCode);
+                inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.KeyDown(KeyCode);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.KeyUp(KeyCode);
+                inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
             }
             else
             {
-                inputSim.Keyboard.KeyPress(KeyCode);
+                inputSim.Keyboard.KeyDown(KeyCode);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.KeyUp(KeyCode);
             }
         }
+
     }
 }
