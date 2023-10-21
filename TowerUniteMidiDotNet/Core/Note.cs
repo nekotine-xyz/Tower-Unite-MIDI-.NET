@@ -5,50 +5,54 @@ using TowerUniteMidiDotNet.Windows;
 
 namespace TowerUniteMidiDotNet.Core
 {
-	/// <summary>
-	/// The class that contains a TowerUnite note's information and playback logic.
-	/// </summary>
-	public class Note
-	{
-		public readonly char NoteCharacter;
-		public readonly VirtualKeyCode KeyCode;
-		public readonly bool IsShiftedKey;
-		private readonly InputSimulator inputSim = new InputSimulator();
+    /// <summary>
+    /// The class that contains a TowerUnite note's information and playback logic.
+    /// </summary>
+    public class Note
+    {
+        public readonly char NoteCharacter;
+        public readonly VirtualKeyCode KeyCode;
+        public readonly bool IsShiftedKey;
 
-		/// <summary>
-		/// Creates a new Note object.
-		/// </summary>
-		/// <param name="noteCharacter">The corresponding Tower Unite note character.</param>
-		/// <param name="isShifted">Whether the shift key is required for this note or not.</param>
-		public Note(char noteCharacter, bool isShifted = false)
-		{
-			NoteCharacter = noteCharacter;
-			IsShiftedKey = isShifted;
+        // Shared InputSimulator instance across all Note instances
+        private static readonly InputSimulator inputSim = new InputSimulator();
 
-			//Converting the character into a VirtualKeyCode, something the InputSimulator can read.
-			KeyConverter converter = new KeyConverter();
-			Key key = (Key)converter.ConvertFromString(noteCharacter.ToString());
-			KeyCode = (VirtualKeyCode)KeyInterop.VirtualKeyFromKey(key);
-		}
+        // Shared KeyConverter instance for efficient key conversion
+        private static readonly KeyConverter converter = new KeyConverter();
 
-        public void Play()
+        /// <summary>
+        /// Creates a new Note object.
+        /// </summary>
+        /// <param name="noteCharacter">The corresponding Tower Unite note character.</param>
+        /// <param name="isShifted">Whether the shift key is required for this note or not.</param>
+        public Note(char noteCharacter, bool isShifted = false)
         {
-            if (!IsShiftedKey)
+            NoteCharacter = noteCharacter;
+            IsShiftedKey = isShifted;
+
+            try
             {
-                inputSim.Keyboard.KeyDown(KeyCode);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
-                inputSim.Keyboard.KeyUp(KeyCode);
+                // converting the character into a VirtualKeyCode
+                Key key = (Key)converter.ConvertFromString(noteCharacter.ToString());
+                KeyCode = (VirtualKeyCode)KeyInterop.VirtualKeyFromKey(key);
             }
-            else
+            catch
             {
-                inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);  // 15 ms delay here
-                inputSim.Keyboard.KeyDown(KeyCode);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);  // and here
-                inputSim.Keyboard.KeyUp(KeyCode);
-                inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
+                // handle or log the conversion error as necessary
+                // wip
             }
         }
 
+        public void Play()
+        {
+            if (IsShiftedKey)
+            {
+                inputSim.Keyboard.ModifiedKeyStroke(VirtualKeyCode.LSHIFT, KeyCode);
+            }
+            else
+            {
+                inputSim.Keyboard.KeyPress(KeyCode);
+            }
+        }
     }
 }
