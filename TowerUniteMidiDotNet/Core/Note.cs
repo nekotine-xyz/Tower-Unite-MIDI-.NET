@@ -2,6 +2,9 @@
 using WindowsInput.Native;
 using System.Windows.Input;
 using TowerUniteMidiDotNet.Windows;
+using System.Collections.Concurrent;
+using System.Threading.Tasks;
+using System.Threading;
 
 namespace TowerUniteMidiDotNet.Core
 {
@@ -14,11 +17,56 @@ namespace TowerUniteMidiDotNet.Core
         public readonly VirtualKeyCode KeyCode;
         public readonly bool IsShiftedKey;
 
-        // Shared InputSimulator instance across all Note instances
         private static readonly InputSimulator inputSim = new InputSimulator();
-
-        // Shared KeyConverter instance for efficient key conversion
         private static readonly KeyConverter converter = new KeyConverter();
+
+        private static ConcurrentQueue<Note> NoteQueue = new ConcurrentQueue<Note>();
+        private static CancellationTokenSource cts = new CancellationTokenSource();
+        private static Task ProcessingTask = Task.Run(() => ProcessQueue(), cts.Token);
+
+        public static void AddToQueue(Note note)
+        {
+            NoteQueue.Enqueue(note);
+        }
+
+        private static async Task ProcessQueue()
+        {
+            while (!cts.Token.IsCancellationRequested)
+            {
+                if (NoteQueue.TryDequeue(out Note note))
+                {
+                    await note.PlayInternal();
+                }
+                else
+                {
+                    await Task.Delay(10); // small delay to prevent a busy loop
+                }
+            }
+        }
+
+        private async Task PlayInternal()
+        {
+            if (IsShiftedKey)
+            {
+                inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.KeyDown(KeyCode);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.KeyUp(KeyCode);
+                inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
+            }
+            else
+            {
+                inputSim.Keyboard.KeyDown(KeyCode);
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.KeyUp(KeyCode);
+            }
+        }
+
+        public void Play()
+        {
+            AddToQueue(this);
+        }
 
         /// <summary>
         /// Creates a new Note object.
@@ -42,25 +90,5 @@ namespace TowerUniteMidiDotNet.Core
                 // wip
             }
         }
-
-        public void Play()
-        {
-            if (IsShiftedKey)
-            {
-                inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
-                inputSim.Keyboard.KeyDown(KeyCode);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
-                inputSim.Keyboard.KeyUp(KeyCode);
-                inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
-            }
-            else
-            {
-                inputSim.Keyboard.KeyDown(KeyCode);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
-                inputSim.Keyboard.KeyUp(KeyCode);
-            }
-        }
-
     }
 }
