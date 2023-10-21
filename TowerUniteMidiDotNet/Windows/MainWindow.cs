@@ -25,9 +25,10 @@ namespace TowerUniteMidiDotNet.Windows
 		private Dictionary<int, Note> noteLookup;
 		private Keys startKey = Keys.F1;
 		private Keys stopKey = Keys.F2;
+        private bool isMidiPlaying = false;
 
-		//It's called this because I plan on adding AZERTY support. Eventually...
-		private List<char> qwertyLookup = new List<char>()
+        //It's called this because I plan on adding AZERTY support. Eventually...
+        private List<char> qwertyLookup = new List<char>()
 		{
 			'1','!','2','@','3','4','$','5','%','6','^','7',
 			'8','*','9','(','0','q','Q','w','W','e','E','r',
@@ -164,30 +165,31 @@ namespace TowerUniteMidiDotNet.Windows
 			}
 		}
 
-		#region MIDI Playback
+        #region MIDI Playback
 
-		private void PlayMidi()
-		{
-			if (currentMidiFile == null || currentMidiFile.MidiPlayback.IsRunning)
-			{
-				return;
-			}
-			else if (currentMidiFile != null)
-			{
-				currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
-			}
+        private void PlayMidi()
+        {
+            if (currentMidiFile == null || currentMidiFile.MidiPlayback.IsRunning)
+            {
+                return;
+            }
+            else if (currentMidiFile != null)
+            {
+                currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
+            }
 
-			MIDIPlaybackTransposeSlider.Enabled = false;
-			MIDIPlaybackSpeedSlider.Enabled = false;
+            MIDIPlaybackTransposeSlider.Enabled = false;
+            MIDIPlaybackSpeedSlider.Enabled = false;
 
-			currentMidiFile.MidiPlayback.NotesPlaybackStarted += OnMidiPlaybackNoteEventReceived;
-			currentMidiFile.MidiPlayback.Finished += OnMidiPlaybackComplete;
-			currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
-			currentMidiFile.MidiPlayback.Start();
-			Log($"Started playing {currentMidiFile.MidiName}.");
-		}
+            currentMidiFile.MidiPlayback.NotesPlaybackStarted += OnMidiPlaybackNoteEventReceived;
+            currentMidiFile.MidiPlayback.Finished += OnMidiPlaybackComplete;
+            currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
+            currentMidiFile.MidiPlayback.Start();
+            isMidiPlaying = true;
+            Log($"Started playing {currentMidiFile.MidiName}.");
+        }
 
-		private void OnMidiPlaybackNoteEventReceived(object sender, NotesEventArgs e)
+        private void OnMidiPlaybackNoteEventReceived(object sender, NotesEventArgs e)
 		{
 			foreach (Melanchall.DryWetMidi.Smf.Interaction.Note midiNote in e.Notes)
 			{
@@ -205,19 +207,26 @@ namespace TowerUniteMidiDotNet.Windows
 			}
 		}
 
-		private void StopMidi()
-		{
-			if (currentMidiFile?.MidiPlayback.IsRunning == true)
-			{
-				MIDIPlaybackTransposeSlider.Enabled = true;
-				MIDIPlaybackSpeedSlider.Enabled = true;
-				currentMidiFile.MidiPlayback.Stop();
-				currentMidiFile.MidiPlayback.MoveToStart();
-				Log($"Stopped playing {currentMidiFile.MidiName}.");
-			}
-		}
+        private void StopMidi()
+        {
+            if (this.InvokeRequired)  // check if we're not on the main thread
+            {
+                this.Invoke(new Action(StopMidi));  // invoke StopMidi on the main thread
+                return;
+            }
 
-		/*
+            if (isMidiPlaying)
+            {
+                MIDIPlaybackTransposeSlider.Enabled = true;
+                MIDIPlaybackSpeedSlider.Enabled = true;
+                currentMidiFile.MidiPlayback.Stop();
+                currentMidiFile.MidiPlayback.MoveToStart();
+                isMidiPlaying = false;
+                Log($"Stopped playing {currentMidiFile.MidiName}.");  // using the cross-thread-safe Log function
+            }
+        }
+
+        /*
 		private void OnMidiPlaybackComplete(object sender, EventArgs e)
 		{
 		    // this line disposes of the MIDI output device when the playback completes.
@@ -229,27 +238,27 @@ namespace TowerUniteMidiDotNet.Windows
 		}
 		*/
 
-		private void OnMidiPlaybackComplete(object sender, EventArgs e)
-		{
-			try
-			{
-				// instead of disposing immediately, just log for now.
-				Log($"MIDI playback for {currentMidiFile.MidiName} completed.");
+        private void OnMidiPlaybackComplete(object sender, EventArgs e)
+        {
+            try
+            {
+                // instead of disposing immediately, just log for now.
+                Log($"MIDI playback for {currentMidiFile.MidiName} completed.");
 
-				// stop the MIDI playback using the existing method
-				StopMidi();
-			}
-			catch (Exception ex)
-			{
-				Log($"Error on MIDI playback completion: {ex.Message}");
-			}
-		}
+                // stop the MIDI playback using the existing method
+                StopMidi();
+            }
+            catch (Exception ex)
+            {
+                Log($"Error on MIDI playback completion: {ex.Message}");
+            }
+        }
 
-		#endregion
+        #endregion
 
-		#region MIDI In
+        #region MIDI In
 
-		private void SelectDevice(int id)
+        private void SelectDevice(int id)
 		{
 			InputDevice newDevice = InputDevice.GetById(id);
 

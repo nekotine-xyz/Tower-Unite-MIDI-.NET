@@ -42,9 +42,9 @@ namespace TowerUniteMidiDotNet.Core
             else
             {
                 inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay / 2);  // reduce delay here
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);  // 15 ms delay here
                 inputSim.Keyboard.KeyDown(KeyCode);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay / 2);  // add a small delay here
+                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);  // and here
                 inputSim.Keyboard.KeyUp(KeyCode);
                 inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
             }
