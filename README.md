@@ -56,6 +56,8 @@ open your Tower Unite window and hit the **F1** key.
 Please either raise an issue here on Github, message me on Twitter (@xelapilled) or Discord (xelapilled), or [email me.](xela@xela.contact)
 
 ## Upcoming
+- Sustain pedal functionality
+- Drag and Drop MIDI files
 - Drum Mode
 - Pause and play
 - Improved black key recognition
