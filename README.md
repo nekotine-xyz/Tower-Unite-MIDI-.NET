@@ -2,12 +2,12 @@
 
 ## What is Tower Unite MIDI .NET?
 
-Tower Unite MIDI .NET, originally developed by Bailey Eaton (Yoshify), serves as a gateway for MIDI-enabled devices to passthrough to the game Tower Unite, allowing players to play the in-game piano using real-life MIDI devices. My update has introduced key optimizations and improvements to augment its performance and stability:
+Tower Unite MIDI .NET, originally developed by Bailey Eaton (Yoshify), is a program that acts as a gateway for MIDI devices to passthrough to Tower Unite, allowing players to play the in-game piano using real-life MIDI devices. My update has introduced key optimizations and improvements to enhance its performance and stability:
 
-1. Improved Stability: Addressed and fixed prevalent crash issues. By wrapping certain functionalities in try/catch blocks, introducing strategic logging, and enhancing playback completion handling, the application's overall resilience has been significantly enhanced. Fixed a significant crash upon finishing playback of a MIDI file.
-2. Latency Optimization: Recognizing the challenges posed by latency, particularly in connections prone to lag, I've augmented key delay functionality. This results in a reduced number of missed notes due to latency.
-3. Code Refinements: Modifications include cleaner code practices and enhanced comments, aiming for a more readable and maintainable codebase.
-4. Quality of Life: Added a feature for the program to remember the last directory from which the user has played a MIDI file.
+1. Improved Stability: Addressed and fixed prevalent crash issues.
+2. Latency Optimization: A complete overhaul has completely fixed previous issues caused by missed notes due to latency.
+3. Code Refinements: Cleaner code practices and enhanced comments, more readable and maintainable codebase.
+4. Quality of Life: Added a feature for the program to remember the last directory from which the user has played a MIDI file. Many more QOL enhancements as well!
 
 With these improvements, Tower Unite MIDI .NET 1.2 offers players a smoother, stable, more reliable experience.
 
@@ -49,8 +49,7 @@ open your Tower Unite window and hit the **F1** key.
       Enables the logging of events such as MIDI key presses.
 
 ## Known Issues
-1. Sometimes, you may be required to spam the "stop" key or button when playing a MIDI, though I've rarely encountered this and cannot reliably replicate it.
-2. Currently only supports a QWERTY keyboard layout.
+1. Currently only supports a QWERTY keyboard layout.
 
 ## Reporting an issue
 Please either raise an issue here on Github, message me on Twitter (@xelapilled) or Discord (xelapilled), or [email me.](xela@xela.contact)
@@ -60,7 +59,6 @@ Please either raise an issue here on Github, message me on Twitter (@xelapilled)
 - Drag and Drop MIDI files
 - Drum Mode
 - Pause and play
-- Improved black key recognition
 - Adjustable speed during MIDI playback
 - Forward/backward functionality
 
