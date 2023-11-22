@@ -17,12 +17,12 @@ namespace TowerUniteMidiDotNet.Core
         public readonly VirtualKeyCode KeyCode;
         public readonly bool IsShiftedKey;
 
-        private static readonly InputSimulator inputSim = new InputSimulator();
+        public static readonly InputSimulator inputSim = new InputSimulator();
         private static readonly KeyConverter converter = new KeyConverter();
 
-        private static ConcurrentQueue<Note> NoteQueue = new ConcurrentQueue<Note>();
-        private static CancellationTokenSource cts = new CancellationTokenSource();
-        private static Task ProcessingTask = Task.Run(() => ProcessQueue(), cts.Token);
+        private static readonly ConcurrentQueue<Note> NoteQueue = new ConcurrentQueue<Note>();
+        private static readonly CancellationTokenSource cts = new CancellationTokenSource();
+        private static readonly Task ProcessingTask = Task.Run(() => ProcessQueue(), cts.Token);
 
         public static void AddToQueue(Note note)
         {

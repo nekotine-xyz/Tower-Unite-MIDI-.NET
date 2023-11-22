@@ -8,10 +8,13 @@ using Melanchall.DryWetMidi.Devices;
 using TowerUniteMidiDotNet.Core;
 using TowerUniteMidiDotNet.Util;
 using System.IO;
+using System.Diagnostics;
+using WindowsInput.Native;
+using System.Threading.Tasks;
 
 namespace TowerUniteMidiDotNet.Windows
 {
-	public partial class MainWindow : Form
+    public partial class MainWindow : Form
 	{
 		public const string Version = "1.2";
 		public static int KeyDelay = 15;
@@ -26,6 +29,7 @@ namespace TowerUniteMidiDotNet.Windows
 		private readonly Keys startKey = Keys.F1;
 		private readonly Keys stopKey = Keys.F2;
         private bool isMidiPlaying = false;
+        private readonly object playbackLock = new object();
 
         //It's called this because I plan on adding AZERTY support. Eventually...
         private readonly List<char> qwertyLookup = new List<char>()
@@ -55,11 +59,18 @@ namespace TowerUniteMidiDotNet.Windows
 			}
 		}
 
-		public MainWindow()
-		{
-			InitializeComponent();
+        public MainWindow()
+        {
+            // check for multiple instances of TUMDN
+            if (Process.GetProcessesByName(Path.GetFileNameWithoutExtension(System.Reflection.Assembly.GetEntryAssembly().Location)).Length > 1)
+            {
+                MessageBox.Show("Tower Unite MIDI .NET is already running!", "Instance Check", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+                Environment.Exit(0); // terminate this instance
+            }
 
-			ScanDevices();
+            InitializeComponent();
+
+            ScanDevices();
 			BuildNoteDictionary();
 
 			MIDIPlaybackSpeedSlider.Value = 10;
@@ -73,17 +84,45 @@ namespace TowerUniteMidiDotNet.Windows
 			}
 			catch (NHotkey.HotkeyAlreadyRegisteredException)
             {
-				// strange error I got once and I can't tell if it will happen again -x
-				MessageBox.Show("A hotkey is already in use! Please report this to @xelapilled on Twitter.");
+				// this should not occur with my check for multiple instances, but if it does I need to know why
+				MessageBox.Show("A hotkey is already in use! Please report this on the Github, or xelapilled on Twitter or Discord.");
 			}
 
 			Text += " " + Version;
-		}
+			//dev test
+            this.KeyPreview = true;
+            this.KeyDown += MainWindow_KeyDown;
+            this.KeyUp += MainWindow_KeyUp;
+        }
+		//dev test
+        private async void MainWindow_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.OemPeriod) // The "." key
+            {
+                // Simulate sustain pedal down with delay
+                Note.inputSim.Keyboard.KeyDown(VirtualKeyCode.SPACE);
+                await Task.Delay(MainWindow.KeyDelay);
+                Log("Sustain pedal (simulated) down.");
+                e.Handled = true;
+            }
+        }
+		//dev test
+        private async void MainWindow_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.OemPeriod) // The "." key
+            {
+                // Wait for the same delay before releasing the key
+                await Task.Delay(MainWindow.KeyDelay);
+                Note.inputSim.Keyboard.KeyUp(VirtualKeyCode.SPACE);
+                Log("Sustain pedal (simulated) up.");
+                e.Handled = true;
+            }
+        }
 
-		/// <summary>
-		/// Will look for any MIDI input devices connected to your computer.
-		/// </summary>
-		private void ScanDevices()
+        /// <summary>
+        /// Will look for any MIDI input devices connected to your computer.
+        /// </summary>
+        private void ScanDevices()
 		{
 			DeviceComboBox.Items.Clear();
 
@@ -124,11 +163,11 @@ namespace TowerUniteMidiDotNet.Windows
 			Log($"Note dictionary built. Middle C is C{noteLookupOctaveTransposition + 1}.");
 		}
 
-		/// <summary>
-		/// Pushes <paramref name="logText"/> to the EventListView log. If there are more than 100 items in the log, the log will start being culled.
-		/// </summary>
-		/// <param name="logText">The text to push to the log.</param>
-		/*
+        /// <summary>
+        /// Pushes <paramref name="logText"/> to the EventListView log. If there are more than 100 items in the log, the log will start being culled.
+        /// </summary>
+        /// <param name="logText">The text to push to the log.</param>
+        /*
 		private void Log(string logText)
 		{
 			// if there are more than 99 items in the EventListView, remove the oldest one
@@ -149,21 +188,30 @@ namespace TowerUniteMidiDotNet.Windows
 		   EventListView.Items[EventListView.Items.Count - 1].EnsureVisible();
 		}
 		*/
-		private void Log(string logText)
-		{
-			// check if the current method call is on a different thread than the one that created the EventListView control
-			if (EventListView.InvokeRequired)
-			{
-				// if it is on a different thread, invoke the Log method on the UI thread
-				// this ensures that the Log method is executed on the correct thread
-				EventListView.Invoke(new Action<string>(Log), logText);
-			}
-			else
-			{
-				// if the current method call is already on the UI thread, directly add the logText to the EventListView control
-				EventListView.Items.Add(logText);
-			}
-		}
+        private void Log(string logText)
+        {
+            // check if the current method call is on a different thread than the one that created the EventListView control
+            if (EventListView.InvokeRequired)
+            {
+                // if it is on a different thread, invoke the Log method on the UI thread
+                // this ensures that the Log method is executed on the correct thread
+                EventListView.Invoke(new Action<string>(Log), logText);
+            }
+            else
+            {
+                // if the current method call is already on the UI thread, insert the logText at the top of the EventListView control
+                EventListView.Items.Insert(0, logText);
+
+                // ensure the newest log item is visible in the EventListView control
+                EventListView.EnsureVisible(0);
+
+                // if there are more than 100 items in the EventListView, remove the oldest one (which is the last one in the list)
+                if (EventListView.Items.Count > 100)
+                {
+                    EventListView.Items.RemoveAt(EventListView.Items.Count - 1);
+                }
+            }
+        }
 
         #region MIDI Playback
 
@@ -190,39 +238,56 @@ namespace TowerUniteMidiDotNet.Windows
         }
 
         private void OnMidiPlaybackNoteEventReceived(object sender, NotesEventArgs e)
-		{
-			foreach (Melanchall.DryWetMidi.Smf.Interaction.Note midiNote in e.Notes)
-			{
-				if (noteLookup.TryGetValue(midiNote.NoteNumber + midiTransposition, out Note note))
-				{
-					note.Play();
-					if (detailedLogging)
-					{
-						Invoke((MethodInvoker)(() =>
-						{
-							Log($"Recieved MIDI number {midiNote.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
-						}));
-					}
-				}
-			}
-		}
+        {
+            foreach (Melanchall.DryWetMidi.Smf.Interaction.Note midiNote in e.Notes)
+            {
+                if (noteLookup.TryGetValue(midiNote.NoteNumber + midiTransposition, out Note note))
+                {
+                    note.Play();
+                    if (detailedLogging)
+                    {
+                        Invoke((MethodInvoker)(() =>
+                        {
+                            Log($"Received MIDI number {midiNote.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+                        }));
+                    }
+                }
+                else
+                {
+                    Invoke((MethodInvoker)(() =>
+                    {
+                        Log($"Note out of range: MIDI number {midiNote.NoteNumber} cannot be played in Tower Unite.");
+                    }));
+                }
+            }
+        }
 
         private void StopMidi()
         {
-            if (this.InvokeRequired)  // check if we're not on the main thread
+            if (this.InvokeRequired)
             {
-                this.Invoke(new Action(StopMidi));  // invoke StopMidi on the main thread
+                this.Invoke(new Action(StopMidi));
                 return;
             }
 
-            if (isMidiPlaying)
+            lock (playbackLock)
             {
-                MIDIPlaybackTransposeSlider.Enabled = true;
-                MIDIPlaybackSpeedSlider.Enabled = true;
-                currentMidiFile.MidiPlayback.Stop();
-                currentMidiFile.MidiPlayback.MoveToStart();
-                isMidiPlaying = false;
-                Log($"Stopped playing {currentMidiFile.MidiName}.");  // using the cross-thread-safe Log function
+                if (isMidiPlaying && currentMidiFile?.MidiPlayback.IsRunning == true)
+                {
+                    try
+                    {
+                        MIDIPlaybackTransposeSlider.Enabled = true;
+                        MIDIPlaybackSpeedSlider.Enabled = true;
+                        currentMidiFile.MidiPlayback.Stop();
+                        currentMidiFile.MidiPlayback.MoveToStart();
+                        isMidiPlaying = false;
+                        Log($"Stopped playing {currentMidiFile.MidiName}.");
+                    }
+                    catch (Exception ex)
+                    {
+                        Log($"Error while stopping MIDI playback: {ex.Message}");
+                    }
+                }
             }
         }
 
@@ -294,34 +359,66 @@ namespace TowerUniteMidiDotNet.Windows
 
 		private void OnMidiEventReceived(object sender, MidiEventReceivedEventArgs e)
 		{
-			if (e.Event is NoteOnEvent)
+			// Handle Note On events
+			if (e.Event is NoteOnEvent noteOnEvent)
 			{
-				NoteOnEvent evt = e.Event as NoteOnEvent;
-
-				if (evt.Velocity == 0)
+				// Note On with velocity 0 is actually Note Off
+				if (noteOnEvent.Velocity > 0)
 				{
-					return;
-				}
-
-				if (noteLookup.TryGetValue(evt.NoteNumber, out Note note))
-				{
-					note.Play();
-					if (detailedLogging)
+					if (noteLookup.TryGetValue(noteOnEvent.NoteNumber, out Note note))
+					{
+						note.Play();
+						if (detailedLogging)
+						{
+							Invoke((MethodInvoker)(() =>
+							{
+								Log($"Received MIDI number {noteOnEvent.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+							}));
+						}
+					}
+					else
 					{
 						Invoke((MethodInvoker)(() =>
 						{
-							Log($"Recieved MIDI number {evt.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+							Log($"Note out of range: MIDI number {noteOnEvent.NoteNumber} cannot be played in Tower Unite.");
 						}));
+					}
+				}
+			}
+			// Handle Control Change events for sustain pedal
+			else if (e.Event is ControlChangeEvent controlChangeEvent)
+			{
+				// Control number 64 corresponds to the sustain pedal
+				if (controlChangeEvent.ControlNumber == 64)
+				{
+					bool pedalDown = controlChangeEvent.ControlValue >= 64;
+					if (pedalDown)
+					{
+						// Assuming inputSim is accessible as a public static field
+						Note.inputSim.Keyboard.KeyDown(VirtualKeyCode.SPACE);
+						if (detailedLogging)
+						{
+							Log("Sustain pedal down.");
+						}
+					}
+					else
+					{
+						// Assuming inputSim is accessible as a public static field
+						Note.inputSim.Keyboard.KeyUp(VirtualKeyCode.SPACE);
+						if (detailedLogging)
+						{
+							Log("Sustain pedal up.");
+						}
 					}
 				}
 			}
 		}
 
-		#endregion
+            #endregion
 
-		#region Event Handlers
+            #region Event Handlers
 
-		private void OnHotkeyPress(object sender, HotkeyEventArgs e)
+            private void OnHotkeyPress(object sender, HotkeyEventArgs e)
 		{
 			switch (e.Name)
 			{
@@ -426,20 +523,30 @@ namespace TowerUniteMidiDotNet.Windows
 				InitialDirectory = lastUsedDirectory
 			};
 
-			if (openFileDialog.ShowDialog() == DialogResult.OK)
-			{
-				// save the directory of the selected MIDI file
-				Properties.Settings.Default.LastUsedDirectory = Path.GetDirectoryName(openFileDialog.FileName);
-				Properties.Settings.Default.Save();
+            if (openFileDialog.ShowDialog() == DialogResult.OK)
+            {
+                try
+                {
+                    // attempt to load the MIDI file
+                    currentMidiFile = new MidiContainer(openFileDialog.SafeFileName, Melanchall.DryWetMidi.Smf.MidiFile.Read(openFileDialog.FileName));
+                    MIDIPlayButton.Enabled = true;
+                    MIDIStopButton.Enabled = true;
+                    Log($"Loaded {openFileDialog.SafeFileName}.");
+                }
+                catch (Exception ex)
+                {
+                    // log the error and notify the user
+                    Log($"Failed to load {openFileDialog.SafeFileName}: {ex.Message}");
+                    MessageBox.Show($"An error occurred while opening the MIDI file: {ex.Message}", "Error Opening MIDI File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
 
-				currentMidiFile = new MidiContainer(openFileDialog.SafeFileName, Melanchall.DryWetMidi.Smf.MidiFile.Read(openFileDialog.FileName));
-				MIDIPlayButton.Enabled = true;
-				MIDIStopButton.Enabled = true;
-				Log($"Loaded {openFileDialog.SafeFileName}.");
-			}
-		}
+                // save the directory of the selected MIDI file
+                Properties.Settings.Default.LastUsedDirectory = Path.GetDirectoryName(openFileDialog.FileName);
+                Properties.Settings.Default.Save();
+            }
+        }
 
-		private void MIDIPlayButton_Click(object sender, EventArgs e)
+        private void MIDIPlayButton_Click(object sender, EventArgs e)
 		{
 			PlayMidi();
 		}

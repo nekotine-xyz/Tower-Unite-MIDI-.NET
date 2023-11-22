@@ -8,9 +8,9 @@ using System.Windows.Forms;
 
 namespace TowerUniteMidiDotNet
 {
-    public partial class Form1 : TowerUniteMidiDotNet.Windows.MainWindow
+    public partial class CreditsForm : TowerUniteMidiDotNet.Windows.MainWindow
     {
-        public Form1()
+        public CreditsForm()
         {
             InitializeComponent();
         }

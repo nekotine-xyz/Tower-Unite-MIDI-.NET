@@ -68,7 +68,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Melanchall.DryWetMidi">
-      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDN\Melanchall.DryWetMidi.dll</HintPath>
+      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\Melanchall.DryWetMidi.dll</HintPath>
+    </Reference>
+    <Reference Include="NHotkey">
+      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\NHotkey.dll</HintPath>
+    </Reference>
+    <Reference Include="NHotkey.WindowsForms">
+      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\NHotkey.WindowsForms.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -84,6 +90,9 @@
     <Reference Include="UIAutomationClient" />
     <Reference Include="UIAutomationProvider" />
     <Reference Include="WindowsBase" />
+    <Reference Include="WindowsInput">
+      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\WindowsInput.dll</HintPath>
+    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Windows\CreditsForm.cs">
