@@ -52,11 +52,12 @@
             this.label1 = new System.Windows.Forms.Label();
             this.MenuStrip = new System.Windows.Forms.MenuStrip();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.InputPingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.FPSAdjustToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.DetailedLoggingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.infoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.creditsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ToolTipController = new System.Windows.Forms.ToolTip(this.components);
+            this.checkboxDrums = new System.Windows.Forms.CheckBox();
             this.TabControl.SuspendLayout();
             this.tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.OctaveTranspositionSlider)).BeginInit();
@@ -121,7 +122,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(4, 31);
+            this.label2.Location = new System.Drawing.Point(8, 30);
             this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(106, 20);
@@ -324,7 +325,7 @@
             // optionsToolStripMenuItem
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.InputPingToolStripMenuItem,
+            this.FPSAdjustToolStripMenuItem,
             this.DetailedLoggingToolStripMenuItem});
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             this.optionsToolStripMenuItem.Size = new System.Drawing.Size(92, 29);
@@ -332,15 +333,15 @@
             // 
             // InputPingToolStripMenuItem
             // 
-            this.InputPingToolStripMenuItem.Name = "InputPingToolStripMenuItem";
-            this.InputPingToolStripMenuItem.Size = new System.Drawing.Size(250, 34);
-            this.InputPingToolStripMenuItem.Text = "Input Ping";
-            this.InputPingToolStripMenuItem.Click += new System.EventHandler(this.InputPingToolStripMenuItem_Click);
+            this.FPSAdjustToolStripMenuItem.Name = "FPSAdjustToolStripMenuItem";
+            this.FPSAdjustToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.FPSAdjustToolStripMenuItem.Text = "FPS Adjust";
+            this.FPSAdjustToolStripMenuItem.Click += new System.EventHandler(this.FPSAdjustToolStripMenuItem_Click);
             // 
             // DetailedLoggingToolStripMenuItem
             // 
             this.DetailedLoggingToolStripMenuItem.Name = "DetailedLoggingToolStripMenuItem";
-            this.DetailedLoggingToolStripMenuItem.Size = new System.Drawing.Size(250, 34);
+            this.DetailedLoggingToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
             this.DetailedLoggingToolStripMenuItem.Text = "Detailed Logging";
             this.DetailedLoggingToolStripMenuItem.Click += new System.EventHandler(this.DetailedLoggingToolStripMenuItem_Click);
             // 
@@ -359,11 +360,24 @@
             this.creditsToolStripMenuItem.Text = "Credits";
             this.creditsToolStripMenuItem.Click += new System.EventHandler(this.CreditsToolStripMenuItem_Click);
             // 
+            // checkboxDrums
+            // 
+            this.checkboxDrums.AutoSize = true;
+            this.checkboxDrums.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
+            this.checkboxDrums.Location = new System.Drawing.Point(358, 393);
+            this.checkboxDrums.Name = "checkboxDrums";
+            this.checkboxDrums.Size = new System.Drawing.Size(118, 24);
+            this.checkboxDrums.TabIndex = 7;
+            this.checkboxDrums.Text = "Drum Mode";
+            this.checkboxDrums.UseVisualStyleBackColor = true;
+            this.checkboxDrums.CheckedChanged += new System.EventHandler(this.CheckboxDrums_CheckedChanged);
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.ClientSize = new System.Drawing.Size(501, 674);
+            this.Controls.Add(this.checkboxDrums);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.EventListView);
             this.Controls.Add(this.TabControl);
@@ -399,7 +413,7 @@
 		private System.Windows.Forms.Label label1;
 		private System.Windows.Forms.MenuStrip MenuStrip;
 		private System.Windows.Forms.ToolStripMenuItem optionsToolStripMenuItem;
-		private System.Windows.Forms.ToolStripMenuItem InputPingToolStripMenuItem;
+		private System.Windows.Forms.ToolStripMenuItem FPSAdjustToolStripMenuItem;
 		private System.Windows.Forms.ToolStripMenuItem DetailedLoggingToolStripMenuItem;
 		private System.Windows.Forms.Button InputDeviceScanButton;
 		private System.Windows.Forms.ComboBox DeviceComboBox;
@@ -419,6 +433,7 @@
 		public System.Windows.Forms.ColumnHeader columnHeader1;
         private System.Windows.Forms.ToolStripMenuItem infoToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem creditsToolStripMenuItem;
+        private System.Windows.Forms.CheckBox checkboxDrums;
     }
 }
 

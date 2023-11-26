@@ -95,6 +95,12 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Windows\FpsInputDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\FpsInputDialog.Designer.cs">
+      <DependentUpon>FpsInputDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\CreditsForm.cs">
       <SubType>Form</SubType>
     </Compile>
@@ -110,6 +116,9 @@
     <Compile Include="Core\Note.cs" />
     <EmbeddedResource Include="Windows\CreditsForm.resx">
       <DependentUpon>CreditsForm.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\FpsInputDialog.resx">
+      <DependentUpon>FpsInputDialog.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\MainWindow.resx">
       <DependentUpon>MainWindow.cs</DependentUpon>

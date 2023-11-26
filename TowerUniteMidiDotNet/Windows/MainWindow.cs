@@ -11,6 +11,7 @@ using System.IO;
 using System.Diagnostics;
 using WindowsInput.Native;
 using System.Threading.Tasks;
+using Melanchall.DryWetMidi.Common;
 
 namespace TowerUniteMidiDotNet.Windows
 {
@@ -30,8 +31,9 @@ namespace TowerUniteMidiDotNet.Windows
 		private readonly Keys stopKey = Keys.F2;
         private bool isMidiPlaying = false;
         private readonly object playbackLock = new object();
+        private bool isDrumModeEnabled = false;
 
-        //It's called this because I plan on adding AZERTY support. Eventually...
+        // called qwertyLookup for future integration of qwertz, azerty, etc.
         private readonly List<char> qwertyLookup = new List<char>()
 		{
 			'1','!','2','@','3','4','$','5','%','6','^','7',
@@ -42,10 +44,38 @@ namespace TowerUniteMidiDotNet.Windows
 			'm'
 		};
 
-		/// <summary>
-		/// A container class for holding a MIDI file, its Playback object and its filename.
-		/// </summary>
-		private class MidiContainer
+		// the decisions I made to work with the limited drumkit of Tower Unite is rather arbitrary, might introduce some system to allow players to assign as they wish
+        private readonly Dictionary<int, VirtualKeyCode> drumMapping = new Dictionary<int, VirtualKeyCode>()
+		{
+			{ 35, VirtualKeyCode.SPACE }, // Acoustic Bass Drum -> Kick
+			{ 36, VirtualKeyCode.SPACE }, // Bass Drum 1 -> Kick
+			{ 38, VirtualKeyCode.VK_F },  // Acoustic Snare -> Snare
+			{ 39, VirtualKeyCode.VK_B }, // Hand Clap -> Clap
+			{ 40, VirtualKeyCode.VK_F },  // Electric Snare -> Snare
+			{ 46, VirtualKeyCode.VK_D },  // Open Hi-hat -> Closed Hit-Hat (OPEN HI HAT SOUNDS AWFUL!)
+			{ 42, VirtualKeyCode.VK_D },  // Closed Hi-hat -> Closed Hi-Hat
+			{ 44, VirtualKeyCode.VK_D },  // Pedal Hi-Hat -> Closed Hi-Hat
+			{ 49, VirtualKeyCode.VK_R },  // Crash Cymbal 1 -> Crash Cymbal 1
+			{ 52, VirtualKeyCode.VK_R },  // Chinese Cymbal -> Crash Cymbal 1
+			{ 55, VirtualKeyCode.VK_U },  // Splash Cymbal -> Crash Cymbal 2
+			{ 57, VirtualKeyCode.VK_U },  // Crash Cymbal 2 -> Crash Cymbal 2
+			{ 50, VirtualKeyCode.VK_T },  // High Tom -> High Tom
+			{ 48, VirtualKeyCode.VK_Y },  // Mid Tom -> Mid Tom
+			{ 43, VirtualKeyCode.VK_Y },  // High Floor Tom -> Mid Tom
+			{ 45, VirtualKeyCode.VK_J },  // Low Tom -> Floor Tom
+			{ 47, VirtualKeyCode.VK_Y },  // Low-Mid Tom -> Mid Tom
+			{ 41, VirtualKeyCode.VK_J },  // Low Floor Tom -> Floor Tom
+			// ... why isn't there a ride cymbal in Tower Unite???
+			//{ 51, VirtualKeyCode.VK_U },  // Ride Cymbal -> Crash Cymbal 2
+			{ 51, VirtualKeyCode.VK_D },  // Ride Cymbal -> Closed Hi-Hat
+			{ 59, VirtualKeyCode.VK_U },  // Ride Cymbal 2 -> Crash Cymbal 2
+			{ 53, VirtualKeyCode.VK_D },  // Ride Bell -> Closed Hi-hat
+		};
+
+        /// <summary>
+        /// A container class for holding a MIDI file, its Playback object and its filename.
+        /// </summary>
+        private class MidiContainer
 		{
 			public MidiFile MidiFile;
 			public Playback MidiPlayback;
@@ -89,34 +119,6 @@ namespace TowerUniteMidiDotNet.Windows
 			}
 
 			Text += " " + Version;
-			//dev test
-            this.KeyPreview = true;
-            this.KeyDown += MainWindow_KeyDown;
-            this.KeyUp += MainWindow_KeyUp;
-        }
-		//dev test
-        private async void MainWindow_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.OemPeriod) // The "." key
-            {
-                // Simulate sustain pedal down with delay
-                Note.inputSim.Keyboard.KeyDown(VirtualKeyCode.SPACE);
-                await Task.Delay(MainWindow.KeyDelay);
-                Log("Sustain pedal (simulated) down.");
-                e.Handled = true;
-            }
-        }
-		//dev test
-        private async void MainWindow_KeyUp(object sender, KeyEventArgs e)
-        {
-            if (e.KeyCode == Keys.OemPeriod) // The "." key
-            {
-                // Wait for the same delay before releasing the key
-                await Task.Delay(MainWindow.KeyDelay);
-                Note.inputSim.Keyboard.KeyUp(VirtualKeyCode.SPACE);
-                Log("Sustain pedal (simulated) up.");
-                e.Handled = true;
-            }
         }
 
         /// <summary>
@@ -223,6 +225,8 @@ namespace TowerUniteMidiDotNet.Windows
             }
             else if (currentMidiFile != null)
             {
+                currentMidiFile.MidiPlayback.Finished -= OnMidiPlaybackComplete;
+
                 currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
             }
 
@@ -239,25 +243,41 @@ namespace TowerUniteMidiDotNet.Windows
 
         private void OnMidiPlaybackNoteEventReceived(object sender, NotesEventArgs e)
         {
-            foreach (Melanchall.DryWetMidi.Smf.Interaction.Note midiNote in e.Notes)
+            foreach (var midiNote in e.Notes)
             {
-                if (noteLookup.TryGetValue(midiNote.NoteNumber + midiTransposition, out Note note))
+                // check if Drum Mode is enabled and the note is from the drum channel (usually channel 10 in MIDI)
+                // general MIDI standard assigns channel 10 (0-based index 9) to percussion instruments
+                if (isDrumModeEnabled && midiNote.Channel == (FourBitNumber)9)
                 {
-                    note.Play();
-                    if (detailedLogging)
+                    // use the drum mapping dictionary to find the corresponding VirtualKeyCode
+                    if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
                     {
-                        Invoke((MethodInvoker)(() =>
+                        Note.PlayDrum(keyCode);
+                        if (detailedLogging)
                         {
-                            Log($"Received MIDI number {midiNote.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
-                        }));
+                            Log($"Drum hit: MIDI number {midiNote.NoteNumber}, key code {keyCode}.");
+                        }
+                    }
+                    else
+                    {
+                        Log($"Drum note out of range: MIDI number {midiNote.NoteNumber} is not mapped.");
                     }
                 }
                 else
                 {
-                    Invoke((MethodInvoker)(() =>
+                    // handle regular note playback
+                    if (noteLookup.TryGetValue(midiNote.NoteNumber + midiTransposition, out Note note))
                     {
-                        Log($"Note out of range: MIDI number {midiNote.NoteNumber} cannot be played in Tower Unite.");
-                    }));
+                        note.Play();
+                        if (detailedLogging)
+                        {
+                            Log($"Received MIDI number {midiNote.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+                        }
+                    }
+                    else
+                    {
+                        Log($"Note out of range: MIDI number {midiNote.NoteNumber} cannot be played.");
+                    }
                 }
             }
         }
@@ -269,7 +289,6 @@ namespace TowerUniteMidiDotNet.Windows
                 this.Invoke(new Action(StopMidi));
                 return;
             }
-
             lock (playbackLock)
             {
                 if (isMidiPlaying && currentMidiFile?.MidiPlayback.IsRunning == true)
@@ -307,17 +326,37 @@ namespace TowerUniteMidiDotNet.Windows
         {
             try
             {
-                // instead of disposing immediately, just log for now.
-                Log($"MIDI playback for {currentMidiFile.MidiName} completed.");
+                if (this.InvokeRequired)
+                {
+                    this.Invoke(new Action(() =>
+                    {
+                        StopMidi();
 
-                // stop the MIDI playback using the existing method
-                StopMidi();
+                        // unlock the sliders here
+                        MIDIPlaybackTransposeSlider.Enabled = true;
+                        MIDIPlaybackSpeedSlider.Enabled = true;
+
+                        Log($"MIDI playback for {currentMidiFile.MidiName} completed.");
+                    }));
+                }
+                else
+                {
+                    // if already on the UI thread, directly execute the code
+                    StopMidi();
+
+                    // unlock the sliders here
+                    MIDIPlaybackTransposeSlider.Enabled = true;
+                    MIDIPlaybackSpeedSlider.Enabled = true;
+
+                    Log($"MIDI playback for {currentMidiFile.MidiName} completed.");
+                }
             }
             catch (Exception ex)
             {
                 Log($"Error on MIDI playback completion: {ex.Message}");
             }
         }
+
 
         #endregion
 
@@ -357,107 +396,113 @@ namespace TowerUniteMidiDotNet.Windows
 			Log($"Stopped listening to '{currentMidiDevice.Name}'.");
 		}
 
-		private void OnMidiEventReceived(object sender, MidiEventReceivedEventArgs e)
-		{
-			// Handle Note On events
-			if (e.Event is NoteOnEvent noteOnEvent)
-			{
-				// Note On with velocity 0 is actually Note Off
-				if (noteOnEvent.Velocity > 0)
-				{
-					if (noteLookup.TryGetValue(noteOnEvent.NoteNumber, out Note note))
-					{
-						note.Play();
-						if (detailedLogging)
-						{
-							Invoke((MethodInvoker)(() =>
-							{
-								Log($"Received MIDI number {noteOnEvent.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
-							}));
-						}
-					}
-					else
-					{
-						Invoke((MethodInvoker)(() =>
-						{
-							Log($"Note out of range: MIDI number {noteOnEvent.NoteNumber} cannot be played in Tower Unite.");
-						}));
-					}
-				}
-			}
-			// Handle Control Change events for sustain pedal
-			else if (e.Event is ControlChangeEvent controlChangeEvent)
-			{
-				// Control number 64 corresponds to the sustain pedal
-				if (controlChangeEvent.ControlNumber == 64)
-				{
-					bool pedalDown = controlChangeEvent.ControlValue >= 64;
-					if (pedalDown)
-					{
-						// Assuming inputSim is accessible as a public static field
-						Note.inputSim.Keyboard.KeyDown(VirtualKeyCode.SPACE);
-						if (detailedLogging)
-						{
-							Log("Sustain pedal down.");
-						}
-					}
-					else
-					{
-						// Assuming inputSim is accessible as a public static field
-						Note.inputSim.Keyboard.KeyUp(VirtualKeyCode.SPACE);
-						if (detailedLogging)
-						{
-							Log("Sustain pedal up.");
-						}
-					}
-				}
-			}
-		}
+        private void OnMidiEventReceived(object sender, MidiEventReceivedEventArgs e)
+        {
+            if (isDrumModeEnabled && e.Event is NoteOnEvent drumNoteEvent && drumNoteEvent.Channel == (FourBitNumber)9)
+            {
+                // Drum Mode is enabled and this is a drum event
+                OnDrumEventReceived(drumNoteEvent.NoteNumber);
+            }
+            else if (e.Event is NoteOnEvent pianoNoteEvent)
+            {
+                // Drum Mode is not enabled, handle as piano event
+                if (pianoNoteEvent.Velocity > 0)
+                {
+                    // use pianoNoteEvent to reference the NoteOnEvent
+                    if (noteLookup.TryGetValue(pianoNoteEvent.NoteNumber, out Note note))
+                    {
+                        note.Play();
+                        if (detailedLogging)
+                        {
+                            Invoke((MethodInvoker)(() =>
+                            {
+                                Log($"Received MIDI number {pianoNoteEvent.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+                            }));
+                        }
+                    }
+                    else
+                    {
+                        Invoke((MethodInvoker)(() =>
+                        {
+                            Log($"Note out of range: MIDI number {pianoNoteEvent.NoteNumber} cannot be played in Tower Unite.");
+                        }));
+                    }
+                }
+            }
+            // handle other MIDI events as needed
+        }
 
-            #endregion
+        #endregion
 
-            #region Event Handlers
+        #region Event Handlers
+        private void CheckboxDrums_CheckedChanged(object sender, EventArgs e)
+        {
+			// if checkbox is checked, enable Drum Mode
+            isDrumModeEnabled = checkboxDrums.Checked;
 
-            private void OnHotkeyPress(object sender, HotkeyEventArgs e)
-		{
-			switch (e.Name)
-			{
-				case "Start":
-					if (TabControl.SelectedIndex == 0)
-					{
-						if (StartListeningButton.Enabled)
-						{
-							StartListening();
-						}
-					}
-					else
-					{
-						if (MIDIPlayButton.Enabled)
-						{
-							PlayMidi();
-						}
-					}
-					break;
-				case "Stop":
-					if (TabControl.SelectedIndex == 0)
-					{
-						if (StopListeningButton.Enabled)
-						{
-							StopListening();
-						}
-					}
-					else
-					{
-						if (MIDIStopButton.Enabled)
-						{
-							StopMidi();
-						}
-					}
-					break;
-			}
-		}
+            // disable the transpose slider if Drum Mode is enabled
+            MIDIPlaybackTransposeSlider.Enabled = !isDrumModeEnabled;
+            OctaveTranspositionSlider.Enabled = !isDrumModeEnabled;
 
-		private void DeviceComboBox_SelectedIndexChanged(object sender, EventArgs e)
+            Log($"Drum Mode toggled. Current state: {isDrumModeEnabled}");
+        }
+
+        private void OnHotkeyPress(object sender, HotkeyEventArgs e)
+        {
+            switch (e.Name)
+            {
+                case "Start":
+                    if (TabControl.SelectedIndex == 0)
+                    {
+                        if (StartListeningButton.Enabled)
+                        {
+                            StartListening();
+                        }
+                    }
+                    else
+                    {
+                        if (MIDIPlayButton.Enabled)
+                        {
+                            // Restart MIDI playback from the beginning
+                            RestartMidi();
+                        }
+                    }
+                    break;
+                case "Stop":
+                    if (TabControl.SelectedIndex == 0)
+                    {
+                        if (StopListeningButton.Enabled)
+                        {
+                            StopListening();
+                        }
+                    }
+                    else
+                    {
+                        if (MIDIStopButton.Enabled)
+                        {
+                            StopMidi();
+                        }
+                    }
+                    break;
+            }
+        }
+
+        private void RestartMidi()
+        {
+            StopMidi(); // Stop MIDI playback if it's currently running
+
+            if (currentMidiFile != null)
+            {
+                // Reset the MIDI playback position to the start
+                currentMidiFile.MidiPlayback.MoveToStart();
+
+                // Start MIDI playback
+                PlayMidi();
+            }
+        }
+
+
+        private void DeviceComboBox_SelectedIndexChanged(object sender, EventArgs e)
 		{
 			if (InputDevice.GetById(DeviceComboBox.SelectedIndex) == currentMidiDevice)
 			{
@@ -561,22 +606,90 @@ namespace TowerUniteMidiDotNet.Windows
 			ScanDevices();
 		}
 
-		private void InputPingToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			if (Prompt.ShowIntDialog("By inputting your ping, the program can work out an appropriate amount of delay to reduce the chance of a missed black key. Note that this will add latency to your keys.", "Input your ping", out int result))
-			{
-				if (result == 0)
-				{
-					return;
-				}
+        private void FPSAdjustToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var fpsDialog = new FpsInputDialog())
+            {
+                var result = fpsDialog.ShowDialog(this);
+                if (result == DialogResult.OK)
+                {
+                    // call the method to update key press duration based on confirmed FPS
+                    FpsInputDialog.UpdateKeyPressDurationFromFPS(fpsDialog.Fps);
+                    Log($"FPS adjusted to {fpsDialog.Fps} with key press duration set to {Note.KeyPressDuration}ms.");
+                }
+                else
+                {
+                    // reset the key press duration to default if Cancel was clicked or the dialog was closed
+                    Note.KeyPressDuration = MainWindow.KeyDelay;
+                    Log("FPS adjustment cancelled or reset. Key press duration set to default.");
+                }
+            }
+        }
 
-				KeyDelay = result / 6;
-				KeyDelay = (KeyDelay < 8) ? 8 : KeyDelay;
-				Log($"Your ping is {result}, your calculated delay is {KeyDelay}ms.");
-			}
-		}
+        /*
+        private void FPSAdjustToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            while (true)
+            {
+                if (Prompt.ShowIntDialog("NOTE: This feature is still being tested! May not work as intended. Input your FPS (20 - 60), or enter 60 to reset to default.", "Input your FPS", out int fps))
+                {
+                    if (fps < 20)
+                    {
+                        MessageBox.Show("FPS must be 20 or higher for adjustments.", "FPS Too Low", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                        // continue the loop, prompting again
+                    }
+                    else if (fps >= 60)
+                    {
+                        // reset to default delay if FPS is 60 or higher
+                        Note.KeyPressDuration = MainWindow.KeyDelay;
+                        Log("FPS is 60 or higher, or reset requested. Key press duration reset to default.");
+                        break; // exit the loop
+                    }
+                    else
+                    {
+                        // update KeyPressDuration for FPS values between 20 and 59
+                        UpdateKeyPressDurationFromFPS(fps);
+                        Log($"Your FPS is {fps}, your adjusted key press duration is {Note.KeyPressDuration}ms.");
+                        break; // exit the loop
+                    }
+                }
+                else
+                {
+                    // user cancelled the prompt
+                    break;
+                }
+            }
+        }
 
-		private void DetailedLoggingToolStripMenuItem_Click(object sender, EventArgs e)
+        // this method updates the KeyPressDuration based on the provided FPS
+        public static void UpdateKeyPressDurationFromFPS(int fps)
+        {
+            // assuming 60 FPS is the baseline for no additional delay
+            int baseDelay = MainWindow.KeyDelay;
+
+            // calculate the scaling factor based on the FPS. 
+            // the formula here is a placeholder, testing needed
+            // if FPS is 30, the delay might be double the base delay.
+            int scalingFactor = 60 / Math.Max(fps, 1); // avoid division by zero
+
+            // apply the scaling factor
+            int newDelay = baseDelay * scalingFactor;
+
+            // set a minimum and maximum bounds for delay
+            int minDelay = 8; // minimum delay in ms
+            int maxDelay = 100; // maximum delay in ms, this value is arbitrary and should be adjusted based on testing
+
+            // clamp the new delay between the min and max bounds
+            Note.KeyPressDuration = Clamp(newDelay, minDelay, maxDelay);
+        }
+
+        private static int Clamp(int value, int min, int max)
+        {
+            return (value < min) ? min : (value > max) ? max : value;
+        }
+		*/
+
+        private void DetailedLoggingToolStripMenuItem_Click(object sender, EventArgs e)
 		{
 			ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
 			detailedLogging = menuItem.Checked = !menuItem.Checked;
@@ -630,6 +743,21 @@ namespace TowerUniteMidiDotNet.Windows
 			}
 		}
 
+        private void OnDrumEventReceived(int noteNumber)
+        {
+            if (drumMapping.TryGetValue(noteNumber, out VirtualKeyCode keyCode))
+            {
+                Note.PlayDrum(keyCode);
+                if (detailedLogging)
+                {
+                    Log($"Drum hit: MIDI number {noteNumber}, key code {keyCode}.");
+                }
+            }
+            else
+            {
+                Log($"Drum note out of range: MIDI number {noteNumber} is not mapped to a drum key.");
+            }
+        }
         #endregion
     }
 }

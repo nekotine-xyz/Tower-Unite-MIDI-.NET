@@ -24,6 +24,8 @@ namespace TowerUniteMidiDotNet.Core
         private static readonly CancellationTokenSource cts = new CancellationTokenSource();
         private static readonly Task ProcessingTask = Task.Run(() => ProcessQueue(), cts.Token);
 
+        public static int KeyPressDuration { get; set; } = MainWindow.KeyDelay;
+
         public static void AddToQueue(Note note)
         {
             NoteQueue.Enqueue(note);
@@ -44,21 +46,26 @@ namespace TowerUniteMidiDotNet.Core
             }
         }
 
+        public static void PlayDrum(VirtualKeyCode keyCode)
+        {
+            inputSim.Keyboard.KeyPress(keyCode);
+        }
+
         private async Task PlayInternal()
         {
             if (IsShiftedKey)
             {
                 inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.Sleep(KeyPressDuration);  // use the adjustable duration
                 inputSim.Keyboard.KeyDown(KeyCode);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.Sleep(KeyPressDuration);  // use the adjustable duration
                 inputSim.Keyboard.KeyUp(KeyCode);
                 inputSim.Keyboard.KeyUp(VirtualKeyCode.LSHIFT);
             }
             else
             {
                 inputSim.Keyboard.KeyDown(KeyCode);
-                inputSim.Keyboard.Sleep(MainWindow.KeyDelay);
+                inputSim.Keyboard.Sleep(KeyPressDuration);  // use the adjustable duration
                 inputSim.Keyboard.KeyUp(KeyCode);
             }
         }
