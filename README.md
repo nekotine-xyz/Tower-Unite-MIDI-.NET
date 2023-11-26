@@ -2,14 +2,7 @@
 
 ## What is Tower Unite MIDI .NET?
 
-Tower Unite MIDI .NET, originally developed by Bailey Eaton (Yoshify), is a program that acts as a gateway for MIDI devices to passthrough to Tower Unite, allowing players to play the in-game piano using real-life MIDI devices. My update has introduced key optimizations and improvements to enhance its performance and stability:
-
-1. Improved Stability: Addressed and fixed prevalent crash issues.
-2. Latency Optimization: A complete overhaul has completely fixed previous issues caused by missed notes due to latency.
-3. Code Refinements: Cleaner code practices and enhanced comments, more readable and maintainable codebase.
-4. Quality of Life: Added a feature for the program to remember the last directory from which the user has played a MIDI file. Many more QOL enhancements as well!
-
-With these improvements, Tower Unite MIDI .NET 1.2 offers players a smoother, stable, more reliable experience.
+Tower Unite MIDI .NET, originally developed by Bailey Eaton (Yoshify), is a program that acts as a gateway for MIDI devices to passthrough to Tower Unite, allowing players to play the in-game piano using real-life MIDI devices. My update has introduced new features, optimizations, and improvements. Tower Unite MIDI .NET 1.2 offers players a smoother, stable, and fuller experience.
 
 ## How do I use it? 
 
@@ -57,7 +50,6 @@ Please either raise an issue here on Github, message me on Twitter (@xelapilled)
 ## Upcoming
 - Sustain pedal functionality
 - Drag and Drop MIDI files
-- Drum Mode
 - Pause and play
 - Adjustable speed during MIDI playback
 - Forward/backward functionality
