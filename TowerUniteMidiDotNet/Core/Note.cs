@@ -97,5 +97,11 @@ namespace TowerUniteMidiDotNet.Core
                 // wip
             }
         }
+        public static int TransposeToPlayableRange(int noteNumber)
+        {
+            while (noteNumber < 36) noteNumber += 12; // Transpose up an octave if too low
+            while (noteNumber > 96) noteNumber -= 12; // Transpose down an octave if too high
+            return noteNumber;
+        }
     }
 }

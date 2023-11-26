@@ -32,6 +32,8 @@ namespace TowerUniteMidiDotNet.Windows
         private bool isMidiPlaying = false;
         private readonly object playbackLock = new object();
         private bool isDrumModeEnabled = false;
+        private bool isTranspositionEnabled = true; // Default to false, can be toggled in UI
+
 
         // called qwertyLookup for future integration of qwertz, azerty, etc.
         private readonly List<char> qwertyLookup = new List<char>()
@@ -49,6 +51,7 @@ namespace TowerUniteMidiDotNet.Windows
 		{
 			{ 35, VirtualKeyCode.SPACE }, // Acoustic Bass Drum -> Kick
 			{ 36, VirtualKeyCode.SPACE }, // Bass Drum 1 -> Kick
+            { 37, VirtualKeyCode.VK_G }, // Side Stick -> Snare Rim
 			{ 38, VirtualKeyCode.VK_F },  // Acoustic Snare -> Snare
 			{ 39, VirtualKeyCode.VK_B }, // Hand Clap -> Clap
 			{ 40, VirtualKeyCode.VK_F },  // Electric Snare -> Snare
@@ -247,40 +250,54 @@ namespace TowerUniteMidiDotNet.Windows
             {
                 // check if Drum Mode is enabled and the note is from the drum channel (usually channel 10 in MIDI)
                 // general MIDI standard assigns channel 10 (0-based index 9) to percussion instruments
-                if (isDrumModeEnabled && midiNote.Channel == (FourBitNumber)9)
+                if (isDrumModeEnabled) // Drum Mode
                 {
-                    // use the drum mapping dictionary to find the corresponding VirtualKeyCode
-                    if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
+                    // In Drum Mode, process only channel 10 (percussion channel)
+                    if (midiNote.Channel == (FourBitNumber)9)
                     {
-                        Note.PlayDrum(keyCode);
-                        if (detailedLogging)
+                        if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
                         {
-                            Log($"Drum hit: MIDI number {midiNote.NoteNumber}, key code {keyCode}.");
+                            Note.PlayDrum(keyCode);
+                            if (detailedLogging)
+                            {
+                                Log($"Drum hit: MIDI number {midiNote.NoteNumber}, key code {keyCode}.");
+                            }
+                        }
+                        else
+                        {
+                            Log($"Drum note out of range or not mapped: MIDI number {midiNote.NoteNumber}.");
                         }
                     }
-                    else
-                    {
-                        Log($"Drum note out of range: MIDI number {midiNote.NoteNumber} is not mapped.");
-                    }
+                    // Skip notes that are not from the percussion channel
                 }
-                else
+                else // Piano Mode
                 {
-                    // handle regular note playback
-                    if (noteLookup.TryGetValue(midiNote.NoteNumber + midiTransposition, out Note note))
+                    int originalNoteNumber = midiNote.NoteNumber + midiTransposition;
+                    int transposedNoteNumber = isTranspositionEnabled
+                                               ? Note.TransposeToPlayableRange(originalNoteNumber)
+                                               : originalNoteNumber;
+
+                    if (transposedNoteNumber != originalNoteNumber && detailedLogging)
+                    {
+                        Log($"Transposing note {originalNoteNumber} to {transposedNoteNumber}");
+                    }
+
+                    if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
                     {
                         note.Play();
                         if (detailedLogging)
                         {
-                            Log($"Received MIDI number {midiNote.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+                            Log($"Played note: MIDI number {transposedNoteNumber}, character {note.NoteCharacter}");
                         }
                     }
-                    else
+                    else if (detailedLogging)
                     {
-                        Log($"Note out of range: MIDI number {midiNote.NoteNumber} cannot be played.");
+                        Log($"Note out of range: MIDI number {transposedNoteNumber} cannot be played.");
                     }
                 }
             }
         }
+
 
         private void StopMidi()
         {
