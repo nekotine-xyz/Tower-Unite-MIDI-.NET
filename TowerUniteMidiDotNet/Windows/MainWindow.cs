@@ -20,7 +20,7 @@ namespace TowerUniteMidiDotNet.Windows
 		public const string Version = "1.2";
 		public static int KeyDelay = 15;
 
-		private InputDevice currentMidiDevice;
+        private InputDevice currentMidiDevice;
 		private MidiContainer currentMidiFile;
 		private bool detailedLogging = false;
 		private int noteLookupOctaveTransposition = 3;
@@ -33,7 +33,6 @@ namespace TowerUniteMidiDotNet.Windows
         private readonly object playbackLock = new object();
         private bool isDrumModeEnabled = false;
         private bool isTranspositionEnabled = true; // Default to false, can be toggled in UI
-
 
         // called qwertyLookup for future integration of qwertz, azerty, etc.
         private readonly List<char> qwertyLookup = new List<char>()
@@ -52,6 +51,8 @@ namespace TowerUniteMidiDotNet.Windows
 			{ 35, VirtualKeyCode.SPACE }, // Acoustic Bass Drum -> Kick
 			{ 36, VirtualKeyCode.SPACE }, // Bass Drum 1 -> Kick
             { 37, VirtualKeyCode.VK_G }, // Side Stick -> Snare Rim
+            { 54, VirtualKeyCode.VK_G }, // Tambourine -> Snare Rim
+            { 82, VirtualKeyCode.VK_G }, // Shaker -> Snare Rim
 			{ 38, VirtualKeyCode.VK_F },  // Acoustic Snare -> Snare
 			{ 39, VirtualKeyCode.VK_B }, // Hand Clap -> Clap
 			{ 40, VirtualKeyCode.VK_F },  // Electric Snare -> Snare
@@ -268,31 +269,31 @@ namespace TowerUniteMidiDotNet.Windows
                             Log($"Drum note out of range or not mapped: MIDI number {midiNote.NoteNumber}.");
                         }
                     }
-                    // Skip notes that are not from the percussion channel
+                    // skip notes that are not from the percussion channel
                 }
                 else // Piano Mode
                 {
-                    int originalNoteNumber = midiNote.NoteNumber + midiTransposition;
-                    int transposedNoteNumber = isTranspositionEnabled
-                                               ? Note.TransposeToPlayableRange(originalNoteNumber)
-                                               : originalNoteNumber;
-
-                    if (transposedNoteNumber != originalNoteNumber && detailedLogging)
+                    if (midiNote.Channel != (FourBitNumber)9)
                     {
-                        Log($"Transposing note {originalNoteNumber} to {transposedNoteNumber}");
-                    }
+                        int transposedNoteNumber = Note.TransposeToPlayableRange(midiNote.NoteNumber + midiTransposition);
 
-                    if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
-                    {
-                        note.Play();
-                        if (detailedLogging)
+                        if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
                         {
-                            Log($"Played note: MIDI number {transposedNoteNumber}, character {note.NoteCharacter}");
+                            note.Play();
+                            if (detailedLogging)
+                            {
+                                Log($"Played piano note: MIDI number {transposedNoteNumber}, character {note.NoteCharacter}");
+                            }
+                        }
+                        else if (detailedLogging)
+                        {
+                            Log($"Piano note out of range: MIDI number {transposedNoteNumber} cannot be played.");
                         }
                     }
+                    // optionally log the skipping of drum channel notes if detailed logging is enabled
                     else if (detailedLogging)
                     {
-                        Log($"Note out of range: MIDI number {transposedNoteNumber} cannot be played.");
+                        Log($"Skipped drum note on MIDI channel 10: MIDI number {midiNote.NoteNumber}");
                     }
                 }
             }

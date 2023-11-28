@@ -32,13 +32,13 @@ namespace TowerUniteMidiDotNet
         {
             try
             {
-                // Set the form's properties
+                // set the form's properties
                 this.StartPosition = FormStartPosition.CenterParent;
                 this.MaximizeBox = false;
                 this.MinimizeBox = false;
                 this.FormBorderStyle = FormBorderStyle.FixedDialog;
 
-                // Create a label for the title
+                // create a label for the title
                 Label titleLabel = new Label
                 {
                     Text = "Credits",
@@ -49,7 +49,7 @@ namespace TowerUniteMidiDotNet
                 };
                 this.Controls.Add(titleLabel);
 
-                // Create a label for the creators
+                // create a label for the creators
                 Label creatorsLabel = new Label
                 {
                     Text = "Original Creator: Bailey Eaton (Yoshify)\nUpdater and Lead Programmer: Nadya (Xela)",
@@ -60,7 +60,7 @@ namespace TowerUniteMidiDotNet
                 };
                 this.Controls.Add(creatorsLabel);
 
-                // Create a link label for contact
+                // create a link label for contact
                 LinkLabel contactLinkLabel = new LinkLabel
                 {
                     Text = "Contact Me",
@@ -73,7 +73,7 @@ namespace TowerUniteMidiDotNet
                 contactLinkLabel.LinkClicked += (sender, args) => Process.Start(args.Link.LinkData as string);
                 this.Controls.Add(contactLinkLabel);
 
-                // Create a label for the license
+                // create a label for the license
                 Label licenseLabel = new Label
                 {
                     Text = "MIT License\nCopyright (c) 2019 Bailey Eaton",
@@ -86,7 +86,7 @@ namespace TowerUniteMidiDotNet
                 licenseLabel.Visible = true;
                 licenseLabel.BringToFront();
 
-                // Create a button for closing the form
+                // create a button for closing the form
                 Button okButton = new Button
                 {
                     Text = "OK",
@@ -96,19 +96,19 @@ namespace TowerUniteMidiDotNet
                 okButton.Click += (sender, args) => this.Close();
                 this.Controls.Add(okButton);
 
-                // Set visibility
+                // set visibility
                 titleLabel.Visible = true;
                 creatorsLabel.Visible = true;
                 contactLinkLabel.Visible = true;
                 okButton.Visible = true;
 
-                // Bring controls to front if necessary
+                // bring controls to front if necessary
                 titleLabel.BringToFront();
                 creatorsLabel.BringToFront();
                 contactLinkLabel.BringToFront();
                 okButton.BringToFront();
 
-                // Refresh the form to redraw the controls
+                // refresh the form to redraw the controls
                 this.Refresh();
             }
             catch (Exception ex)
