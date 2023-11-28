@@ -246,9 +246,8 @@ namespace TowerUniteMidiDotNet.Windows
         {
             foreach (var midiNote in e.Notes)
             {
-                // check if Drum Mode is enabled and the note is from the drum channel (usually channel 10 in MIDI)
-                // general MIDI standard assigns channel 10 (0-based index 9) to percussion instruments
-                if (isDrumModeEnabled && midiNote.Channel == (FourBitNumber)9) // Drum Mode
+                // Only process notes on the drum channel if Drum Mode is enabled
+                if (isDrumModeEnabled && midiNote.Channel == (FourBitNumber)9)
                 {
                     if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
                     {
@@ -263,7 +262,7 @@ namespace TowerUniteMidiDotNet.Windows
                         Log($"Drum note out of range or not mapped: MIDI number {midiNote.NoteNumber}.");
                     }
                 }
-                else // Piano Mode
+                else if (!isDrumModeEnabled) // Piano Mode
                 {
                     if (midiNote.Channel != (FourBitNumber)9)
                     {
@@ -407,18 +406,17 @@ namespace TowerUniteMidiDotNet.Windows
 
         private void OnMidiEventReceived(object sender, MidiEventReceivedEventArgs e)
         {
-            if (e.Event is NoteOnEvent noteEvent)
+            if (e.Event is NoteOnEvent noteEvent && noteEvent.Velocity > 0)
             {
+                // Only process notes on the drum channel if Drum Mode is enabled
                 if (isDrumModeEnabled && noteEvent.Channel == (FourBitNumber)9)
                 {
-                    // Drum Mode is enabled and this is a drum event
                     OnDrumEventReceived(noteEvent.NoteNumber);
                 }
-                else if (noteEvent.Velocity > 0) // this is a note-on event
+                else if (!isDrumModeEnabled)
                 {
                     int originalNoteNumber = noteEvent.NoteNumber + midiTransposition;
                     int transposedNoteNumber = originalNoteNumber;
-
                     // transpose the note if it's out of range and auto transpose is enabled
                     if (isAutoTranspositionEnabled)
                     {
