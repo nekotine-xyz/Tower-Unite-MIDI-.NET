@@ -38,7 +38,7 @@ namespace TowerUniteMidiDotNet
                 this.MinimizeBox = false;
                 this.FormBorderStyle = FormBorderStyle.FixedDialog;
 
-                // create a label for the title
+                // label for the title
                 Label titleLabel = new Label
                 {
                     Text = "Credits",
@@ -49,7 +49,7 @@ namespace TowerUniteMidiDotNet
                 };
                 this.Controls.Add(titleLabel);
 
-                // create a label for the creators
+                // label for the creators
                 Label creatorsLabel = new Label
                 {
                     Text = "Original Creator: Bailey Eaton (Yoshify)\nUpdater and Lead Programmer: Nadya (Xela)",
@@ -60,33 +60,57 @@ namespace TowerUniteMidiDotNet
                 };
                 this.Controls.Add(creatorsLabel);
 
-                // create a link label for contact
+                // link label for contact
                 LinkLabel contactLinkLabel = new LinkLabel
                 {
                     Text = "Contact Me",
                     TextAlign = ContentAlignment.MiddleCenter,
                     Font = new Font("Segoe UI", 12),
                     Size = new Size(this.ClientSize.Width, 20),
-                    Location = new Point(0, 120)
+                    Location = new Point(0, 110)
                 };
                 contactLinkLabel.Links.Add(0, contactLinkLabel.Text.Length, "https://twitter.com/XelaPilled");
                 contactLinkLabel.LinkClicked += (sender, args) => Process.Start(args.Link.LinkData as string);
                 this.Controls.Add(contactLinkLabel);
 
-                // create a label for the license
+                // label for the support text
+                Label supportLabel = new Label
+                {
+                    Text = "Want to support my work?",
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 12),
+                    Size = new Size(this.ClientSize.Width, 20),
+                    Location = new Point(0, 140)
+                };
+                this.Controls.Add(supportLabel);
+
+                // link label for donations
+                LinkLabel donateLinkLabel = new LinkLabel
+                {
+                    Text = "Donate",
+                    TextAlign = ContentAlignment.MiddleCenter,
+                    Font = new Font("Segoe UI", 12),
+                    Size = new Size(this.ClientSize.Width, 20),
+                    Location = new Point(0, 170)
+                };
+                donateLinkLabel.Links.Add(0, donateLinkLabel.Text.Length, "https://ko-fi.com/xelapilled");
+                donateLinkLabel.LinkClicked += (sender, args) => Process.Start(args.Link.LinkData as string);
+                this.Controls.Add(donateLinkLabel);
+
+                // label for the license
                 Label licenseLabel = new Label
                 {
                     Text = "MIT License\nCopyright (c) 2019 Bailey Eaton",
                     TextAlign = ContentAlignment.MiddleCenter,
                     Font = new Font("Segoe UI", 10),
                     Size = new Size(this.ClientSize.Width, 40),
-                    Location = new Point(0, 150)
+                    Location = new Point(0, 200)
                 };
                 this.Controls.Add(licenseLabel);
                 licenseLabel.Visible = true;
                 licenseLabel.BringToFront();
 
-                // create a button for closing the form
+                // button for closing the form
                 Button okButton = new Button
                 {
                     Text = "OK",
@@ -101,14 +125,18 @@ namespace TowerUniteMidiDotNet
                 creatorsLabel.Visible = true;
                 contactLinkLabel.Visible = true;
                 okButton.Visible = true;
+                supportLabel.Visible = true;
+                donateLinkLabel.Visible = true;
 
-                // bring controls to front if necessary
+                // bring controls to front
                 titleLabel.BringToFront();
                 creatorsLabel.BringToFront();
                 contactLinkLabel.BringToFront();
                 okButton.BringToFront();
+                supportLabel.BringToFront();
+                donateLinkLabel.BringToFront();
 
-                // refresh the form to redraw the controls
+                // refresh the form
                 this.Refresh();
             }
             catch (Exception ex)

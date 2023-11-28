@@ -50,7 +50,7 @@
             this.cancelButton.Name = "cancelButton";
             this.cancelButton.Size = new System.Drawing.Size(120, 38);
             this.cancelButton.TabIndex = 3;
-            this.cancelButton.Text = "Cancel";
+            this.cancelButton.Text = "Clear";
             // 
             // label1
             // 

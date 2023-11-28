@@ -54,6 +54,7 @@
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.FPSAdjustToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.DetailedLoggingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.autoTransposeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.infoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.creditsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ToolTipController = new System.Windows.Forms.ToolTip(this.components);
@@ -326,12 +327,13 @@
             // 
             this.optionsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.FPSAdjustToolStripMenuItem,
+            this.autoTransposeToolStripMenuItem,
             this.DetailedLoggingToolStripMenuItem});
             this.optionsToolStripMenuItem.Name = "optionsToolStripMenuItem";
             this.optionsToolStripMenuItem.Size = new System.Drawing.Size(92, 29);
             this.optionsToolStripMenuItem.Text = "Options";
             // 
-            // InputPingToolStripMenuItem
+            // FPSAdjustToolStripMenuItem
             // 
             this.FPSAdjustToolStripMenuItem.Name = "FPSAdjustToolStripMenuItem";
             this.FPSAdjustToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
@@ -344,6 +346,13 @@
             this.DetailedLoggingToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
             this.DetailedLoggingToolStripMenuItem.Text = "Detailed Logging";
             this.DetailedLoggingToolStripMenuItem.Click += new System.EventHandler(this.DetailedLoggingToolStripMenuItem_Click);
+            // 
+            // autoTransposeToolStripMenuItem
+            // 
+            this.autoTransposeToolStripMenuItem.Name = "autoTransposeToolStripMenuItem";
+            this.autoTransposeToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.autoTransposeToolStripMenuItem.Text = "Auto Transpose";
+            this.autoTransposeToolStripMenuItem.Click += new System.EventHandler(this.AutoTransposeToolStripMenuItem_Click);
             // 
             // infoToolStripMenuItem
             // 
@@ -434,6 +443,6 @@
         private System.Windows.Forms.ToolStripMenuItem infoToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem creditsToolStripMenuItem;
         private System.Windows.Forms.CheckBox checkboxDrums;
+        private System.Windows.Forms.ToolStripMenuItem autoTransposeToolStripMenuItem;
     }
 }
-

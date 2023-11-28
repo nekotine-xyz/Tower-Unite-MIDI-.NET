@@ -32,7 +32,7 @@ namespace TowerUniteMidiDotNet.Windows
         private bool isMidiPlaying = false;
         private readonly object playbackLock = new object();
         private bool isDrumModeEnabled = false;
-        private bool isTranspositionEnabled = true; // Default to false, can be toggled in UI
+        private bool isAutoTranspositionEnabled = false; // currently unused, needs to be connected to the code that handles auto-transpose of out-of-range notes. should be allowed to be toggled in UI
 
         // called qwertyLookup for future integration of qwertz, azerty, etc.
         private readonly List<char> qwertyLookup = new List<char>()
@@ -251,46 +251,47 @@ namespace TowerUniteMidiDotNet.Windows
             {
                 // check if Drum Mode is enabled and the note is from the drum channel (usually channel 10 in MIDI)
                 // general MIDI standard assigns channel 10 (0-based index 9) to percussion instruments
-                if (isDrumModeEnabled) // Drum Mode
+                if (isDrumModeEnabled && midiNote.Channel == (FourBitNumber)9) // Drum Mode
                 {
-                    // In Drum Mode, process only channel 10 (percussion channel)
-                    if (midiNote.Channel == (FourBitNumber)9)
+                    if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
                     {
-                        if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
+                        Note.PlayDrum(keyCode);
+                        if (detailedLogging)
                         {
-                            Note.PlayDrum(keyCode);
-                            if (detailedLogging)
-                            {
-                                Log($"Drum hit: MIDI number {midiNote.NoteNumber}, key code {keyCode}.");
-                            }
-                        }
-                        else
-                        {
-                            Log($"Drum note out of range or not mapped: MIDI number {midiNote.NoteNumber}.");
+                            Log($"Drum hit: MIDI number {midiNote.NoteNumber}, key code {keyCode}.");
                         }
                     }
-                    // skip notes that are not from the percussion channel
+                    else
+                    {
+                        Log($"Drum note out of range or not mapped: MIDI number {midiNote.NoteNumber}.");
+                    }
                 }
                 else // Piano Mode
                 {
                     if (midiNote.Channel != (FourBitNumber)9)
                     {
-                        int transposedNoteNumber = Note.TransposeToPlayableRange(midiNote.NoteNumber + midiTransposition);
+                        int noteNumber = midiNote.NoteNumber + midiTransposition;
 
-                        if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
+                        // If auto transpose is disabled and the note is out of range, log it
+                        if (!isAutoTranspositionEnabled && !noteLookup.ContainsKey(noteNumber))
                         {
-                            note.Play();
-                            if (detailedLogging)
+                            Log($"Piano note out of range: MIDI number {noteNumber} cannot be played.");
+                        }
+                        else
+                        {
+                            // If auto transpose is enabled or the note is in range, play it
+                            int transposedNoteNumber = Note.TransposeToPlayableRange(noteNumber);
+                            if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
                             {
-                                Log($"Played piano note: MIDI number {transposedNoteNumber}, character {note.NoteCharacter}");
+                                note.Play();
+                                if (detailedLogging)
+                                {
+                                    Log($"Played piano note: MIDI number {transposedNoteNumber}, character {note.NoteCharacter}");
+                                }
                             }
                         }
-                        else if (detailedLogging)
-                        {
-                            Log($"Piano note out of range: MIDI number {transposedNoteNumber} cannot be played.");
-                        }
                     }
-                    // optionally log the skipping of drum channel notes if detailed logging is enabled
+                    // Optionally log the skipping of drum channel notes if detailed logging is enabled
                     else if (detailedLogging)
                     {
                         Log($"Skipped drum note on MIDI channel 10: MIDI number {midiNote.NoteNumber}");
@@ -298,6 +299,7 @@ namespace TowerUniteMidiDotNet.Windows
                 }
             }
         }
+
 
 
         private void StopMidi()
@@ -416,34 +418,40 @@ namespace TowerUniteMidiDotNet.Windows
 
         private void OnMidiEventReceived(object sender, MidiEventReceivedEventArgs e)
         {
-            if (isDrumModeEnabled && e.Event is NoteOnEvent drumNoteEvent && drumNoteEvent.Channel == (FourBitNumber)9)
+            if (e.Event is NoteOnEvent noteEvent)
             {
-                // Drum Mode is enabled and this is a drum event
-                OnDrumEventReceived(drumNoteEvent.NoteNumber);
-            }
-            else if (e.Event is NoteOnEvent pianoNoteEvent)
-            {
-                // Drum Mode is not enabled, handle as piano event
-                if (pianoNoteEvent.Velocity > 0)
+                if (isDrumModeEnabled && noteEvent.Channel == (FourBitNumber)9)
                 {
-                    // use pianoNoteEvent to reference the NoteOnEvent
-                    if (noteLookup.TryGetValue(pianoNoteEvent.NoteNumber, out Note note))
-                    {
-                        note.Play();
-                        if (detailedLogging)
-                        {
-                            Invoke((MethodInvoker)(() =>
-                            {
-                                Log($"Received MIDI number {pianoNoteEvent.NoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
-                            }));
-                        }
-                    }
-                    else
+                    // Drum Mode is enabled and this is a drum event
+                    OnDrumEventReceived(noteEvent.NoteNumber);
+                }
+                else if (noteEvent.Velocity > 0) // This is a note-on event
+                {
+                    int noteNumber = noteEvent.NoteNumber + midiTransposition;
+
+                    // if auto transpose is disabled and the note is out of range, log it
+                    if (!isAutoTranspositionEnabled && !noteLookup.ContainsKey(noteNumber))
                     {
                         Invoke((MethodInvoker)(() =>
                         {
-                            Log($"Note out of range: MIDI number {pianoNoteEvent.NoteNumber} cannot be played in Tower Unite.");
+                            Log($"Piano note out of range: MIDI number {noteNumber} cannot be played in Tower Unite.");
                         }));
+                    }
+                    else
+                    {
+                        // if auto transpose is enabled or the note is in range, play it
+                        int transposedNoteNumber = Note.TransposeToPlayableRange(noteNumber);
+                        if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
+                        {
+                            note.Play();
+                            if (detailedLogging)
+                            {
+                                Invoke((MethodInvoker)(() =>
+                                {
+                                    Log($"Received MIDI number {noteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+                                }));
+                            }
+                        }
                     }
                 }
             }
@@ -643,69 +651,13 @@ namespace TowerUniteMidiDotNet.Windows
                 }
             }
         }
-
-        /*
-        private void FPSAdjustToolStripMenuItem_Click(object sender, EventArgs e)
+        private void AutoTransposeToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            while (true)
-            {
-                if (Prompt.ShowIntDialog("NOTE: This feature is still being tested! May not work as intended. Input your FPS (20 - 60), or enter 60 to reset to default.", "Input your FPS", out int fps))
-                {
-                    if (fps < 20)
-                    {
-                        MessageBox.Show("FPS must be 20 or higher for adjustments.", "FPS Too Low", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                        // continue the loop, prompting again
-                    }
-                    else if (fps >= 60)
-                    {
-                        // reset to default delay if FPS is 60 or higher
-                        Note.KeyPressDuration = MainWindow.KeyDelay;
-                        Log("FPS is 60 or higher, or reset requested. Key press duration reset to default.");
-                        break; // exit the loop
-                    }
-                    else
-                    {
-                        // update KeyPressDuration for FPS values between 20 and 59
-                        UpdateKeyPressDurationFromFPS(fps);
-                        Log($"Your FPS is {fps}, your adjusted key press duration is {Note.KeyPressDuration}ms.");
-                        break; // exit the loop
-                    }
-                }
-                else
-                {
-                    // user cancelled the prompt
-                    break;
-                }
-            }
+            Note.AutoTransposeEnabled = isAutoTranspositionEnabled;
+            isAutoTranspositionEnabled = !isAutoTranspositionEnabled;
+            autoTransposeToolStripMenuItem.Checked = isAutoTranspositionEnabled;
+            Log($"Auto Transpose toggled. Current state: {isAutoTranspositionEnabled}");
         }
-
-        // this method updates the KeyPressDuration based on the provided FPS
-        public static void UpdateKeyPressDurationFromFPS(int fps)
-        {
-            // assuming 60 FPS is the baseline for no additional delay
-            int baseDelay = MainWindow.KeyDelay;
-
-            // calculate the scaling factor based on the FPS. 
-            // the formula here is a placeholder, testing needed
-            // if FPS is 30, the delay might be double the base delay.
-            int scalingFactor = 60 / Math.Max(fps, 1); // avoid division by zero
-
-            // apply the scaling factor
-            int newDelay = baseDelay * scalingFactor;
-
-            // set a minimum and maximum bounds for delay
-            int minDelay = 8; // minimum delay in ms
-            int maxDelay = 100; // maximum delay in ms, this value is arbitrary and should be adjusted based on testing
-
-            // clamp the new delay between the min and max bounds
-            Note.KeyPressDuration = Clamp(newDelay, minDelay, maxDelay);
-        }
-
-        private static int Clamp(int value, int min, int max)
-        {
-            return (value < min) ? min : (value > max) ? max : value;
-        }
-		*/
 
         private void DetailedLoggingToolStripMenuItem_Click(object sender, EventArgs e)
 		{
@@ -713,7 +665,7 @@ namespace TowerUniteMidiDotNet.Windows
 			detailedLogging = menuItem.Checked = !menuItem.Checked;
 		}
 
-		private void MIDIPlaybackSpeedSlider_ValueChanged(object sender, EventArgs e)
+        private void MIDIPlaybackSpeedSlider_ValueChanged(object sender, EventArgs e)
 		{
 			midiPlaybackSpeed = MIDIPlaybackSpeedSlider.Value / 10.0;
 			ToolTipController.SetToolTip((TrackBar)sender, midiPlaybackSpeed.ToString() + "x");

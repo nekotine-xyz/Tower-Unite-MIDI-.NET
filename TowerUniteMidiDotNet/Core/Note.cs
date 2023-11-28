@@ -23,6 +23,7 @@ namespace TowerUniteMidiDotNet.Core
         private static readonly ConcurrentQueue<Note> NoteQueue = new ConcurrentQueue<Note>();
         private static readonly CancellationTokenSource cts = new CancellationTokenSource();
         private static readonly Task ProcessingTask = Task.Run(() => ProcessQueue(), cts.Token);
+        public static bool AutoTransposeEnabled { get; set; } = false;
 
         public static int KeyPressDuration { get; set; } = MainWindow.KeyDelay;
 
@@ -53,6 +54,12 @@ namespace TowerUniteMidiDotNet.Core
 
         private async Task PlayInternal()
         {
+            // check if Auto Transpose is enabled and transpose the note if necessary
+            int noteNumber = NoteCharacter;
+            if (AutoTransposeEnabled)
+            {
+                noteNumber = TransposeToPlayableRange(noteNumber);
+            }
             if (IsShiftedKey)
             {
                 inputSim.Keyboard.KeyDown(VirtualKeyCode.LSHIFT);
