@@ -1,34 +1,32 @@
-﻿using System;
-using System.Windows.Forms;
-using System.Collections.Generic;
+﻿using Melanchall.DryWetMidi.Common;
+using Melanchall.DryWetMidi.Devices;
+using Melanchall.DryWetMidi.Smf;
 using NHotkey;
 using NHotkey.WindowsForms;
-using Melanchall.DryWetMidi.Smf;
-using Melanchall.DryWetMidi.Devices;
-using TowerUniteMidiDotNet.Core;
-using TowerUniteMidiDotNet.Util;
-using System.IO;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
+using System.Windows.Forms;
+using TowerUniteMidiDotNet.Core;
 using WindowsInput.Native;
-using System.Threading.Tasks;
-using Melanchall.DryWetMidi.Common;
 
 namespace TowerUniteMidiDotNet.Windows
 {
     public partial class MainWindow : Form
-	{
-		public const string Version = "1.2";
-		public static int KeyDelay = 15;
+    {
+        public const string Version = "1.2";
+        public static int KeyDelay = 15;
 
         private InputDevice currentMidiDevice;
-		private MidiContainer currentMidiFile;
-		private bool detailedLogging = false;
-		private int noteLookupOctaveTransposition = 3;
-		private int midiTransposition = 0;
-		private double midiPlaybackSpeed = 1.0;
-		private Dictionary<int, Note> noteLookup;
-		private readonly Keys startKey = Keys.F1;
-		private readonly Keys stopKey = Keys.F2;
+        private MidiContainer currentMidiFile;
+        private bool detailedLogging = false;
+        private int noteLookupOctaveTransposition = 3;
+        private int midiTransposition = 0;
+        private double midiPlaybackSpeed = 1.0;
+        private Dictionary<int, Note> noteLookup;
+        private readonly Keys startKey = Keys.F1;
+        private readonly Keys stopKey = Keys.F2;
         private bool isMidiPlaying = false;
         private readonly object playbackLock = new object();
         private bool isDrumModeEnabled = false;
@@ -36,19 +34,19 @@ namespace TowerUniteMidiDotNet.Windows
 
         // called qwertyLookup for future integration of qwertz, azerty, etc.
         private readonly List<char> qwertyLookup = new List<char>()
-		{
-			'1','!','2','@','3','4','$','5','%','6','^','7',
-			'8','*','9','(','0','q','Q','w','W','e','E','r',
-			't','T','y','Y','u','i','I','o','O','p','P','a',
-			's','S','d','D','f','g','G','h','H','j','J','k',
-			'l','L','z','Z','x','c','C','v','V','b','B','n',
-			'm'
-		};
+        {
+            '1','!','2','@','3','4','$','5','%','6','^','7',
+            '8','*','9','(','0','q','Q','w','W','e','E','r',
+            't','T','y','Y','u','i','I','o','O','p','P','a',
+            's','S','d','D','f','g','G','h','H','j','J','k',
+            'l','L','z','Z','x','c','C','v','V','b','B','n',
+            'm'
+        };
 
-		// the decisions I made to work with the limited drumkit of Tower Unite is rather arbitrary, might introduce some system to allow players to assign as they wish
+        // the decisions I made to work with the limited drumkit of Tower Unite is rather arbitrary, might introduce some system to allow players to assign as they wish
         private readonly Dictionary<int, VirtualKeyCode> drumMapping = new Dictionary<int, VirtualKeyCode>()
-		{
-			{ 35, VirtualKeyCode.SPACE }, // Acoustic Bass Drum -> Kick
+        {
+            { 35, VirtualKeyCode.SPACE }, // Acoustic Bass Drum -> Kick
 			{ 36, VirtualKeyCode.SPACE }, // Bass Drum 1 -> Kick
             { 37, VirtualKeyCode.VK_G }, // Side Stick -> Snare Rim
             { 54, VirtualKeyCode.VK_G }, // Tambourine -> Snare Rim
@@ -80,18 +78,18 @@ namespace TowerUniteMidiDotNet.Windows
         /// A container class for holding a MIDI file, its Playback object and its filename.
         /// </summary>
         private class MidiContainer
-		{
-			public MidiFile MidiFile;
-			public Playback MidiPlayback;
-			public string MidiName;
+        {
+            public MidiFile MidiFile;
+            public Playback MidiPlayback;
+            public string MidiName;
 
-			public MidiContainer(string name, MidiFile file)
-			{
-				MidiFile = file;
-				MidiName = name;
-				MidiPlayback = file.GetPlayback();
-			}
-		}
+            public MidiContainer(string name, MidiFile file)
+            {
+                MidiFile = file;
+                MidiName = name;
+                MidiPlayback = file.GetPlayback();
+            }
+        }
 
         public MainWindow()
         {
@@ -105,95 +103,70 @@ namespace TowerUniteMidiDotNet.Windows
             InitializeComponent();
 
             ScanDevices();
-			BuildNoteDictionary();
+            BuildNoteDictionary();
 
-			MIDIPlaybackSpeedSlider.Value = 10;
-			MIDIPlaybackTransposeSlider.Value = 0;
-			OctaveTranspositionSlider.Value = 0;
+            MIDIPlaybackSpeedSlider.Value = 10;
+            MIDIPlaybackTransposeSlider.Value = 0;
+            OctaveTranspositionSlider.Value = 0;
 
-			try
-			{
-				HotkeyManager.Current.AddOrReplace("Start", startKey, OnHotkeyPress);
-				HotkeyManager.Current.AddOrReplace("Stop", stopKey, OnHotkeyPress);
-			}
-			catch (NHotkey.HotkeyAlreadyRegisteredException)
+            try
             {
-				// this should not occur with my check for multiple instances, but if it does I need to know why
-				MessageBox.Show("A hotkey is already in use! Please report this on the Github, or xelapilled on Twitter or Discord.");
-			}
+                HotkeyManager.Current.AddOrReplace("Start", startKey, OnHotkeyPress);
+                HotkeyManager.Current.AddOrReplace("Stop", stopKey, OnHotkeyPress);
+            }
+            catch (NHotkey.HotkeyAlreadyRegisteredException)
+            {
+                // this should not occur with my check for multiple instances, but if it does I need to know why
+                MessageBox.Show("A hotkey is already in use! Please report this on the Github, or xelapilled on Twitter or Discord.");
+            }
 
-			Text += " " + Version;
+            Text += " " + Version;
         }
 
         /// <summary>
         /// Will look for any MIDI input devices connected to your computer.
         /// </summary>
         private void ScanDevices()
-		{
-			DeviceComboBox.Items.Clear();
+        {
+            DeviceComboBox.Items.Clear();
 
-			foreach (InputDevice device in InputDevice.GetAll())
-			{
-				DeviceComboBox.Items.Add($"{device.Name} ID:{device.Id}");
-			}
-		}
-
-		/// <summary>
-		/// Builds the note lookup dictionary for the program to reference. The key in the Dictionary is the notes MIDI number, whereas
-		/// the value is the corresponding Note object itself.
-		/// </summary>
-		private void BuildNoteDictionary()
-		{
-			noteLookup = new Dictionary<int, Note>();
-
-			for (int row = 0; row < 6; row++)
-			{
-				for (int column = 0; column < 12; column++)
-				{
-					if (row == 5 && column == 1)
-					{
-						break;
-					}
-
-					if (!char.IsLetterOrDigit(qwertyLookup[row * 12 + column]) || char.IsUpper(qwertyLookup[row * 12 + column]))
-					{
-						noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Note(qwertyLookup[(row * 12 + column) - 1], true));
-					}
-					else
-					{
-						noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Note(qwertyLookup[row * 12 + column]));
-					}
-				}
-			}
-
-			Log($"Note dictionary built. Middle C is C{noteLookupOctaveTransposition + 1}.");
-		}
+            foreach (InputDevice device in InputDevice.GetAll())
+            {
+                DeviceComboBox.Items.Add($"{device.Name} ID:{device.Id}");
+            }
+        }
 
         /// <summary>
-        /// Pushes <paramref name="logText"/> to the EventListView log. If there are more than 100 items in the log, the log will start being culled.
+        /// Builds the note lookup dictionary for the program to reference. The key in the Dictionary is the notes MIDI number, whereas
+        /// the value is the corresponding Note object itself.
         /// </summary>
-        /// <param name="logText">The text to push to the log.</param>
-        /*
-		private void Log(string logText)
-		{
-			// if there are more than 99 items in the EventListView, remove the oldest one
-			// this is done to limit the number of logs displayed in the EventListView
-			if (EventListView.Items.Count > 99)
-			{
-				EventListView.Items.RemoveAt(0);
-			}
+        private void BuildNoteDictionary()
+        {
+            noteLookup = new Dictionary<int, Note>();
 
-		    // directly adding log text to the EventListView control
-		    // this can cause a crash if this method is called from a thread other than the one 
-		    // which created the EventListView, leading to a cross-thread operation error.
-				EventListView.Items.Add(logText);
+            for (int row = 0; row < 6; row++)
+            {
+                for (int column = 0; column < 12; column++)
+                {
+                    if (row == 5 && column == 1)
+                    {
+                        break;
+                    }
 
-			// ensuring the added log item is visible in the EventListView control
-			// again, this direct manipulation can cause a cross-thread operation error if
-			// the method is called from a thread other than the main UI thread.
-		   EventListView.Items[EventListView.Items.Count - 1].EnsureVisible();
-		}
-		*/
+                    if (!char.IsLetterOrDigit(qwertyLookup[row * 12 + column]) || char.IsUpper(qwertyLookup[row * 12 + column]))
+                    {
+                        noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Note(qwertyLookup[(row * 12 + column) - 1], true));
+                    }
+                    else
+                    {
+                        noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Note(qwertyLookup[row * 12 + column]));
+                    }
+                }
+            }
+
+            Log($"Note dictionary built. Middle C is C{noteLookupOctaveTransposition + 1}.");
+        }
+
         private void Log(string logText)
         {
             // check if the current method call is on a different thread than the one that created the EventListView control
@@ -270,37 +243,38 @@ namespace TowerUniteMidiDotNet.Windows
                 {
                     if (midiNote.Channel != (FourBitNumber)9)
                     {
-                        int noteNumber = midiNote.NoteNumber + midiTransposition;
+                        int originalNoteNumber = midiNote.NoteNumber + midiTransposition;
+                        int transposedNoteNumber = originalNoteNumber;
 
-                        // If auto transpose is disabled and the note is out of range, log it
-                        if (!isAutoTranspositionEnabled && !noteLookup.ContainsKey(noteNumber))
+                        // transpose the note if it's out of range and auto transpose is enabled
+                        if (isAutoTranspositionEnabled)
                         {
-                            Log($"Piano note out of range: MIDI number {noteNumber} cannot be played.");
+                            transposedNoteNumber = Note.TransposeToPlayableRange(originalNoteNumber);
                         }
-                        else
+
+                        if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
                         {
-                            // If auto transpose is enabled or the note is in range, play it
-                            int transposedNoteNumber = Note.TransposeToPlayableRange(noteNumber);
-                            if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
+                            note.Play();
+                            if (detailedLogging)
                             {
-                                note.Play();
-                                if (detailedLogging)
+                                if (isAutoTranspositionEnabled && originalNoteNumber != transposedNoteNumber)
+                                {
+                                    Log($"[AutoTranspose] Playing note from MIDI number {originalNoteNumber} to {transposedNoteNumber}.");
+                                }
+                                else
                                 {
                                     Log($"Played piano note: MIDI number {transposedNoteNumber}, character {note.NoteCharacter}");
                                 }
                             }
                         }
-                    }
-                    // Optionally log the skipping of drum channel notes if detailed logging is enabled
-                    else if (detailedLogging)
-                    {
-                        Log($"Skipped drum note on MIDI channel 10: MIDI number {midiNote.NoteNumber}");
+                        else if (!isAutoTranspositionEnabled)
+                        {
+                            Log($"Piano note out of range: MIDI number {originalNoteNumber} cannot be played.");
+                        }
                     }
                 }
             }
         }
-
-
 
         private void StopMidi()
         {
@@ -329,18 +303,6 @@ namespace TowerUniteMidiDotNet.Windows
                 }
             }
         }
-
-        /*
-		private void OnMidiPlaybackComplete(object sender, EventArgs e)
-		{
-		    // this line disposes of the MIDI output device when the playback completes.
-		    // while this releases any resources associated with the output device, it does
-		    // not actually stop the MIDI playback or reset its state. thus, playback continues
-		    // until manually stopped or until the program crashes due to trying to access a 
-		    // disposed object in subsequent operations.
-		    currentMidiFile.MidiPlayback.OutputDevice.Dispose();
-		}
-		*/
 
         private void OnMidiPlaybackComplete(object sender, EventArgs e)
         {
@@ -377,44 +339,43 @@ namespace TowerUniteMidiDotNet.Windows
             }
         }
 
-
         #endregion
 
         #region MIDI In
 
         private void SelectDevice(int id)
-		{
-			InputDevice newDevice = InputDevice.GetById(id);
+        {
+            InputDevice newDevice = InputDevice.GetById(id);
 
-			if (currentMidiDevice?.Id == newDevice.Id)
-			{
-				return;
-			}
-			else
-			{
-				if (currentMidiDevice != null)
-				{
-					currentMidiDevice.EventReceived -= OnMidiEventReceived;
-					currentMidiDevice.Dispose();
-				}
-			}
+            if (currentMidiDevice?.Id == newDevice.Id)
+            {
+                return;
+            }
+            else
+            {
+                if (currentMidiDevice != null)
+                {
+                    currentMidiDevice.EventReceived -= OnMidiEventReceived;
+                    currentMidiDevice.Dispose();
+                }
+            }
 
-			currentMidiDevice = newDevice;
-			currentMidiDevice.EventReceived += OnMidiEventReceived;
-			Log($"Selected {currentMidiDevice.Name}.");
-		}
+            currentMidiDevice = newDevice;
+            currentMidiDevice.EventReceived += OnMidiEventReceived;
+            Log($"Selected {currentMidiDevice.Name}.");
+        }
 
-		private void StartListening()
-		{
-			currentMidiDevice.StartEventsListening();
-			Log($"Started listening to '{currentMidiDevice.Name}'.");
-		}
+        private void StartListening()
+        {
+            currentMidiDevice.StartEventsListening();
+            Log($"Started listening to '{currentMidiDevice.Name}'.");
+        }
 
-		private void StopListening()
-		{
-			currentMidiDevice.StopEventsListening();
-			Log($"Stopped listening to '{currentMidiDevice.Name}'.");
-		}
+        private void StopListening()
+        {
+            currentMidiDevice.StopEventsListening();
+            Log($"Stopped listening to '{currentMidiDevice.Name}'.");
+        }
 
         private void OnMidiEventReceived(object sender, MidiEventReceivedEventArgs e)
         {
@@ -425,45 +386,54 @@ namespace TowerUniteMidiDotNet.Windows
                     // Drum Mode is enabled and this is a drum event
                     OnDrumEventReceived(noteEvent.NoteNumber);
                 }
-                else if (noteEvent.Velocity > 0) // This is a note-on event
+                else if (noteEvent.Velocity > 0) // this is a note-on event
                 {
-                    int noteNumber = noteEvent.NoteNumber + midiTransposition;
+                    int originalNoteNumber = noteEvent.NoteNumber + midiTransposition;
+                    int transposedNoteNumber = originalNoteNumber;
 
-                    // if auto transpose is disabled and the note is out of range, log it
-                    if (!isAutoTranspositionEnabled && !noteLookup.ContainsKey(noteNumber))
+                    // transpose the note if it's out of range and auto transpose is enabled
+                    if (isAutoTranspositionEnabled)
+                    {
+                        transposedNoteNumber = Note.TransposeToPlayableRange(originalNoteNumber);
+                    }
+
+                    if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
+                    {
+                        note.Play();
+                        if (detailedLogging)
+                        {
+                            Invoke((MethodInvoker)(() =>
+                            {
+                                if (isAutoTranspositionEnabled && originalNoteNumber != transposedNoteNumber)
+                                {
+                                    Log($"[AutoTranspose] Playing note from MIDI number {originalNoteNumber} to {transposedNoteNumber}.");
+                                }
+                                else
+                                {
+                                    Log($"Received MIDI number {transposedNoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
+                                }
+                            }));
+                        }
+                    }
+                    else if (!isAutoTranspositionEnabled)
                     {
                         Invoke((MethodInvoker)(() =>
                         {
-                            Log($"Piano note out of range: MIDI number {noteNumber} cannot be played in Tower Unite.");
+                            Log($"Piano note out of range: MIDI number {originalNoteNumber} cannot be played in Tower Unite.");
                         }));
                     }
-                    else
-                    {
-                        // if auto transpose is enabled or the note is in range, play it
-                        int transposedNoteNumber = Note.TransposeToPlayableRange(noteNumber);
-                        if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
-                        {
-                            note.Play();
-                            if (detailedLogging)
-                            {
-                                Invoke((MethodInvoker)(() =>
-                                {
-                                    Log($"Received MIDI number {noteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
-                                }));
-                            }
-                        }
-                    }
                 }
+                // handle other MIDI events as needed
             }
-            // handle other MIDI events as needed
         }
+
 
         #endregion
 
         #region Event Handlers
         private void CheckboxDrums_CheckedChanged(object sender, EventArgs e)
         {
-			// if checkbox is checked, enable Drum Mode
+            // if checkbox is checked, enable Drum Mode
             isDrumModeEnabled = checkboxDrums.Checked;
 
             // disable the transpose slider if Drum Mode is enabled
@@ -529,70 +499,42 @@ namespace TowerUniteMidiDotNet.Windows
 
 
         private void DeviceComboBox_SelectedIndexChanged(object sender, EventArgs e)
-		{
-			if (InputDevice.GetById(DeviceComboBox.SelectedIndex) == currentMidiDevice)
-			{
-				return;
-			}
+        {
+            if (InputDevice.GetById(DeviceComboBox.SelectedIndex) == currentMidiDevice)
+            {
+                return;
+            }
 
-			SelectDevice(DeviceComboBox.SelectedIndex);
-			StartListeningButton.Enabled = true;
-			StopListeningButton.Enabled = true;
-		}
+            SelectDevice(DeviceComboBox.SelectedIndex);
+            StartListeningButton.Enabled = true;
+            StopListeningButton.Enabled = true;
+        }
 
-		private void StartListeningButton_Click(object sender, EventArgs e)
-		{
-			StartListening();
-		}
+        private void StartListeningButton_Click(object sender, EventArgs e)
+        {
+            StartListening();
+        }
 
-		private void StopListeningButton_Click(object sender, EventArgs e)
-		{
-			StopListening();
-		}
+        private void StopListeningButton_Click(object sender, EventArgs e)
+        {
+            StopListening();
+        }
 
-		/*
-		private void MIDIBrowseButton_Click(object sender, EventArgs e)
-		{
-		    OpenFileDialog openFileDialog = new OpenFileDialog()
-		    {
-		        FileName = "Select your MIDI file.",
-        
-		        Filter = "MIDI Files (*.mid;*.midi)|*.mid;*.midi",
-        
-		        Title = "Open MIDI File",
-        
-		        // every time the OpenFileDialog is opened, it starts in the C:\ directory.
-		        // this does not remember the user's last location, which is inconvenient
-		        // if the user often navigates to another directory to select MIDI files.
-		        InitialDirectory = @"C:\"
-		    };
+        private void MIDIBrowseButton_Click(object sender, EventArgs e)
+        {
+            string lastUsedDirectory = Properties.Settings.Default.LastUsedDirectory;
+            if (string.IsNullOrEmpty(lastUsedDirectory))
+            {
+                lastUsedDirectory = @"C:\";
+            }
 
-		    {
-		        currentMidiFile = new MidiContainer(openFileDialog.SafeFileName, Melanchall.DryWetMidi.Smf.MidiFile.Read(openFileDialog.FileName));
-        
-		        MIDIPlayButton.Enabled = true;
-		        MIDIStopButton.Enabled = true;
-        
-		        Log($"Loaded {openFileDialog.SafeFileName}.");
-		    }
-		}
-		*/
-
-		private void MIDIBrowseButton_Click(object sender, EventArgs e)
-		{
-			string lastUsedDirectory = Properties.Settings.Default.LastUsedDirectory;
-			if (string.IsNullOrEmpty(lastUsedDirectory))
-			{
-				lastUsedDirectory = @"C:\";
-			}
-
-			OpenFileDialog openFileDialog = new OpenFileDialog()
-			{
-				FileName = "Select your MIDI file.",
-				Filter = "MIDI Files (*.mid;*.midi)|*.mid;*.midi",
-				Title = "Open MIDI File",
-				InitialDirectory = lastUsedDirectory
-			};
+            OpenFileDialog openFileDialog = new OpenFileDialog()
+            {
+                FileName = "Select your MIDI file.",
+                Filter = "MIDI Files (*.mid;*.midi)|*.mid;*.midi",
+                Title = "Open MIDI File",
+                InitialDirectory = lastUsedDirectory
+            };
 
             if (openFileDialog.ShowDialog() == DialogResult.OK)
             {
@@ -618,19 +560,19 @@ namespace TowerUniteMidiDotNet.Windows
         }
 
         private void MIDIPlayButton_Click(object sender, EventArgs e)
-		{
-			PlayMidi();
-		}
+        {
+            PlayMidi();
+        }
 
-		private void MIDIStopButton_Click(object sender, EventArgs e)
-		{
-			StopMidi();
-		}
+        private void MIDIStopButton_Click(object sender, EventArgs e)
+        {
+            StopMidi();
+        }
 
-		private void InputDeviceScanButton_Click(object sender, EventArgs e)
-		{
-			ScanDevices();
-		}
+        private void InputDeviceScanButton_Click(object sender, EventArgs e)
+        {
+            ScanDevices();
+        }
 
         private void FPSAdjustToolStripMenuItem_Click(object sender, EventArgs e)
         {
@@ -660,58 +602,58 @@ namespace TowerUniteMidiDotNet.Windows
         }
 
         private void DetailedLoggingToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
-			detailedLogging = menuItem.Checked = !menuItem.Checked;
-		}
+        {
+            ToolStripMenuItem menuItem = (ToolStripMenuItem)sender;
+            detailedLogging = menuItem.Checked = !menuItem.Checked;
+        }
 
         private void MIDIPlaybackSpeedSlider_ValueChanged(object sender, EventArgs e)
-		{
-			midiPlaybackSpeed = MIDIPlaybackSpeedSlider.Value / 10.0;
-			ToolTipController.SetToolTip((TrackBar)sender, midiPlaybackSpeed.ToString() + "x");
+        {
+            midiPlaybackSpeed = MIDIPlaybackSpeedSlider.Value / 10.0;
+            ToolTipController.SetToolTip((TrackBar)sender, midiPlaybackSpeed.ToString() + "x");
 
-			if (currentMidiFile != null)
-			{
-				currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
-			}
-		}
+            if (currentMidiFile != null)
+            {
+                currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
+            }
+        }
 
-		private void MIDIPlaybackTransposeSlider_ValueChanged(object sender, EventArgs e)
-		{
-			if (MIDIPlaybackTransposeSlider.Value > 0)
-			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"+{MIDIPlaybackTransposeSlider.Value} semitones");
-			}
-			else
-			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"{MIDIPlaybackTransposeSlider.Value} semitones");
-			}
+        private void MIDIPlaybackTransposeSlider_ValueChanged(object sender, EventArgs e)
+        {
+            if (MIDIPlaybackTransposeSlider.Value > 0)
+            {
+                ToolTipController.SetToolTip((TrackBar)sender, $"+{MIDIPlaybackTransposeSlider.Value} semitones");
+            }
+            else
+            {
+                ToolTipController.SetToolTip((TrackBar)sender, $"{MIDIPlaybackTransposeSlider.Value} semitones");
+            }
 
-			midiTransposition = MIDIPlaybackTransposeSlider.Value;
-		}
+            midiTransposition = MIDIPlaybackTransposeSlider.Value;
+        }
 
-		private void OctaveTranspositionSlider_ValueChanged(object sender, EventArgs e)
-		{
-			if (OctaveTranspositionSlider.Value > 0)
-			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"+{OctaveTranspositionSlider.Value} octaves");
-			}
-			else
-			{
-				ToolTipController.SetToolTip((TrackBar)sender, $"{OctaveTranspositionSlider.Value} octaves");
-			}
+        private void OctaveTranspositionSlider_ValueChanged(object sender, EventArgs e)
+        {
+            if (OctaveTranspositionSlider.Value > 0)
+            {
+                ToolTipController.SetToolTip((TrackBar)sender, $"+{OctaveTranspositionSlider.Value} octaves");
+            }
+            else
+            {
+                ToolTipController.SetToolTip((TrackBar)sender, $"{OctaveTranspositionSlider.Value} octaves");
+            }
 
-			noteLookupOctaveTransposition = 3 + OctaveTranspositionSlider.Value;
-			BuildNoteDictionary();
-		}
-		private void CreditsToolStripMenuItem_Click(object sender, EventArgs e)
-		{
-			using (var creditsForm = new CreditsForm())
-			{
-				creditsForm.StartPosition = FormStartPosition.CenterParent;
-				creditsForm.ShowDialog(this);
-			}
-		}
+            noteLookupOctaveTransposition = 3 + OctaveTranspositionSlider.Value;
+            BuildNoteDictionary();
+        }
+        private void CreditsToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            using (var creditsForm = new CreditsForm())
+            {
+                creditsForm.StartPosition = FormStartPosition.CenterParent;
+                creditsForm.ShowDialog(this);
+            }
+        }
 
         private void OnDrumEventReceived(int noteNumber)
         {

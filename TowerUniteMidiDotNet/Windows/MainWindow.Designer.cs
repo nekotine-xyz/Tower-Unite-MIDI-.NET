@@ -53,8 +53,8 @@
             this.MenuStrip = new System.Windows.Forms.MenuStrip();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.FPSAdjustToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.DetailedLoggingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.autoTransposeToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.DetailedLoggingToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.infoToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.creditsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ToolTipController = new System.Windows.Forms.ToolTip(this.components);
@@ -340,19 +340,19 @@
             this.FPSAdjustToolStripMenuItem.Text = "FPS Adjust";
             this.FPSAdjustToolStripMenuItem.Click += new System.EventHandler(this.FPSAdjustToolStripMenuItem_Click);
             // 
-            // DetailedLoggingToolStripMenuItem
-            // 
-            this.DetailedLoggingToolStripMenuItem.Name = "DetailedLoggingToolStripMenuItem";
-            this.DetailedLoggingToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
-            this.DetailedLoggingToolStripMenuItem.Text = "Detailed Logging";
-            this.DetailedLoggingToolStripMenuItem.Click += new System.EventHandler(this.DetailedLoggingToolStripMenuItem_Click);
-            // 
             // autoTransposeToolStripMenuItem
             // 
             this.autoTransposeToolStripMenuItem.Name = "autoTransposeToolStripMenuItem";
             this.autoTransposeToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
             this.autoTransposeToolStripMenuItem.Text = "Auto Transpose";
             this.autoTransposeToolStripMenuItem.Click += new System.EventHandler(this.AutoTransposeToolStripMenuItem_Click);
+            // 
+            // DetailedLoggingToolStripMenuItem
+            // 
+            this.DetailedLoggingToolStripMenuItem.Name = "DetailedLoggingToolStripMenuItem";
+            this.DetailedLoggingToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.DetailedLoggingToolStripMenuItem.Text = "Detailed Logging";
+            this.DetailedLoggingToolStripMenuItem.Click += new System.EventHandler(this.DetailedLoggingToolStripMenuItem_Click);
             // 
             // infoToolStripMenuItem
             // 
@@ -365,7 +365,7 @@
             // creditsToolStripMenuItem
             // 
             this.creditsToolStripMenuItem.Name = "creditsToolStripMenuItem";
-            this.creditsToolStripMenuItem.Size = new System.Drawing.Size(169, 34);
+            this.creditsToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
             this.creditsToolStripMenuItem.Text = "Credits";
             this.creditsToolStripMenuItem.Click += new System.EventHandler(this.CreditsToolStripMenuItem_Click);
             // 
@@ -398,6 +398,7 @@
             this.MaximizeBox = false;
             this.Name = "MainWindow";
             this.Text = "Tower Unite MIDI .NET";
+            this.TopMost = true;
             this.TabControl.ResumeLayout(false);
             this.tabPage1.ResumeLayout(false);
             this.tabPage1.PerformLayout();
