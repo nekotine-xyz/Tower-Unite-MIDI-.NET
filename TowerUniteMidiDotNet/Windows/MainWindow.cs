@@ -8,8 +8,10 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Windows.Forms;
+using System.Linq;
 using TowerUniteMidiDotNet.Core;
 using WindowsInput.Native;
+using Melanchall.DryWetMidi.Smf.Interaction;
 
 namespace TowerUniteMidiDotNet.Windows
 {
@@ -24,13 +26,14 @@ namespace TowerUniteMidiDotNet.Windows
         private int noteLookupOctaveTransposition = 3;
         private int midiTransposition = 0;
         private double midiPlaybackSpeed = 1.0;
-        private Dictionary<int, Note> noteLookup;
+        private Dictionary<int, Core.Note> noteLookup;
         private readonly Keys startKey = Keys.F1;
         private readonly Keys stopKey = Keys.F2;
         private bool isMidiPlaying = false;
         private readonly object playbackLock = new object();
         private bool isDrumModeEnabled = false;
-        private bool isAutoTranspositionEnabled = false; // currently unused, needs to be connected to the code that handles auto-transpose of out-of-range notes. should be allowed to be toggled in UI
+        private bool isAutoTranspositionEnabled = false;
+        private readonly System.Windows.Forms.Timer playbackTimer;
 
         // called qwertyLookup for future integration of qwertz, azerty, etc.
         private readonly List<char> qwertyLookup = new List<char>()
@@ -105,6 +108,11 @@ namespace TowerUniteMidiDotNet.Windows
             ScanDevices();
             BuildNoteDictionary();
 
+            playbackTimer = new Timer
+            {
+                Interval = 1000 // Update every second
+            };
+            playbackTimer.Tick += new EventHandler(PlaybackTimer_Tick);
             MIDIPlaybackSpeedSlider.Value = 10;
             MIDIPlaybackTransposeSlider.Value = 0;
             OctaveTranspositionSlider.Value = 0;
@@ -121,6 +129,17 @@ namespace TowerUniteMidiDotNet.Windows
             }
 
             Text += " " + Version;
+        }
+
+        private void PlaybackTimer_Tick(object sender, EventArgs e)
+        {
+            if (currentMidiFile != null && currentMidiFile.MidiPlayback.IsRunning)
+            {
+                var currentTime = currentMidiFile.MidiPlayback.GetCurrentTime<MetricTimeSpan>();
+                var duration = currentMidiFile.MidiFile.GetDuration<MetricTimeSpan>();
+
+                progressBar1.Value = (int)((currentTime.TotalMicroseconds * progressBar1.Maximum) / duration.TotalMicroseconds);
+            }
         }
 
         /// <summary>
@@ -142,7 +161,7 @@ namespace TowerUniteMidiDotNet.Windows
         /// </summary>
         private void BuildNoteDictionary()
         {
-            noteLookup = new Dictionary<int, Note>();
+            noteLookup = new Dictionary<int, Core.Note>();
 
             for (int row = 0; row < 6; row++)
             {
@@ -155,11 +174,11 @@ namespace TowerUniteMidiDotNet.Windows
 
                     if (!char.IsLetterOrDigit(qwertyLookup[row * 12 + column]) || char.IsUpper(qwertyLookup[row * 12 + column]))
                     {
-                        noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Note(qwertyLookup[(row * 12 + column) - 1], true));
+                        noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Core.Note(qwertyLookup[(row * 12 + column) - 1], true));
                     }
                     else
                     {
-                        noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Note(qwertyLookup[row * 12 + column]));
+                        noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Core.Note(qwertyLookup[row * 12 + column]));
                     }
                 }
             }
@@ -207,6 +226,10 @@ namespace TowerUniteMidiDotNet.Windows
                 currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
             }
 
+            var duration = currentMidiFile.MidiFile.GetDuration<MetricTimeSpan>();
+            progressBar1.Maximum = (int)duration.TotalMicroseconds;
+            progressBar1.Value = 0;
+
             MIDIPlaybackTransposeSlider.Enabled = false;
             MIDIPlaybackSpeedSlider.Enabled = false;
 
@@ -215,6 +238,7 @@ namespace TowerUniteMidiDotNet.Windows
             currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
             currentMidiFile.MidiPlayback.Start();
             isMidiPlaying = true;
+            playbackTimer.Start();
             Log($"Started playing {currentMidiFile.MidiName}.");
         }
 
@@ -228,7 +252,7 @@ namespace TowerUniteMidiDotNet.Windows
                 {
                     if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
                     {
-                        Note.PlayDrum(keyCode);
+                        Core.Note.PlayDrum(keyCode);
                         if (detailedLogging)
                         {
                             Log($"Drum hit: MIDI number {midiNote.NoteNumber}, key code {keyCode}.");
@@ -249,10 +273,10 @@ namespace TowerUniteMidiDotNet.Windows
                         // transpose the note if it's out of range and auto transpose is enabled
                         if (isAutoTranspositionEnabled)
                         {
-                            transposedNoteNumber = Note.TransposeToPlayableRange(originalNoteNumber);
+                            transposedNoteNumber = Core.Note.TransposeToPlayableRange(originalNoteNumber);
                         }
 
-                        if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
+                        if (noteLookup.TryGetValue(transposedNoteNumber, out Core.Note note))
                         {
                             note.Play();
                             if (detailedLogging)
@@ -294,6 +318,8 @@ namespace TowerUniteMidiDotNet.Windows
                         currentMidiFile.MidiPlayback.Stop();
                         currentMidiFile.MidiPlayback.MoveToStart();
                         isMidiPlaying = false;
+                        playbackTimer.Stop();
+                        progressBar1.Value = 0;
                         Log($"Stopped playing {currentMidiFile.MidiName}.");
                     }
                     catch (Exception ex)
@@ -313,7 +339,8 @@ namespace TowerUniteMidiDotNet.Windows
                     this.Invoke(new Action(() =>
                     {
                         StopMidi();
-
+                        playbackTimer.Stop();
+                        progressBar1.Value = 0;
                         // unlock the sliders here
                         MIDIPlaybackTransposeSlider.Enabled = true;
                         MIDIPlaybackSpeedSlider.Enabled = true;
@@ -325,7 +352,8 @@ namespace TowerUniteMidiDotNet.Windows
                 {
                     // if already on the UI thread, directly execute the code
                     StopMidi();
-
+                    playbackTimer.Stop();
+                    progressBar1.Value = 0;
                     // unlock the sliders here
                     MIDIPlaybackTransposeSlider.Enabled = true;
                     MIDIPlaybackSpeedSlider.Enabled = true;
@@ -394,10 +422,9 @@ namespace TowerUniteMidiDotNet.Windows
                     // transpose the note if it's out of range and auto transpose is enabled
                     if (isAutoTranspositionEnabled)
                     {
-                        transposedNoteNumber = Note.TransposeToPlayableRange(originalNoteNumber);
+                        transposedNoteNumber = Core.Note.TransposeToPlayableRange(originalNoteNumber);
                     }
-
-                    if (noteLookup.TryGetValue(transposedNoteNumber, out Note note))
+                    if (noteLookup.TryGetValue(transposedNoteNumber, out Core.Note note))
                     {
                         note.Play();
                         if (detailedLogging)
@@ -497,7 +524,6 @@ namespace TowerUniteMidiDotNet.Windows
             }
         }
 
-
         private void DeviceComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (InputDevice.GetById(DeviceComboBox.SelectedIndex) == currentMidiDevice)
@@ -583,19 +609,19 @@ namespace TowerUniteMidiDotNet.Windows
                 {
                     // call the method to update key press duration based on confirmed FPS
                     FpsInputDialog.UpdateKeyPressDurationFromFPS(fpsDialog.Fps);
-                    Log($"FPS adjusted to {fpsDialog.Fps} with key press duration set to {Note.KeyPressDuration}ms.");
+                    Log($"FPS adjusted to {fpsDialog.Fps} with key press duration set to {Core.Note.KeyPressDuration}ms.");
                 }
                 else
                 {
                     // reset the key press duration to default if Cancel was clicked or the dialog was closed
-                    Note.KeyPressDuration = MainWindow.KeyDelay;
+                    Core.Note.KeyPressDuration = MainWindow.KeyDelay;
                     Log("FPS adjustment cancelled or reset. Key press duration set to default.");
                 }
             }
         }
         private void AutoTransposeToolStripMenuItem_Click(object sender, EventArgs e)
         {
-            Note.AutoTransposeEnabled = isAutoTranspositionEnabled;
+            Core.Note.AutoTransposeEnabled = isAutoTranspositionEnabled;
             isAutoTranspositionEnabled = !isAutoTranspositionEnabled;
             autoTransposeToolStripMenuItem.Checked = isAutoTranspositionEnabled;
             Log($"Auto Transpose toggled. Current state: {isAutoTranspositionEnabled}");
@@ -659,7 +685,7 @@ namespace TowerUniteMidiDotNet.Windows
         {
             if (drumMapping.TryGetValue(noteNumber, out VirtualKeyCode keyCode))
             {
-                Note.PlayDrum(keyCode);
+                Core.Note.PlayDrum(keyCode);
                 if (detailedLogging)
                 {
                     Log($"Drum hit: MIDI number {noteNumber}, key code {keyCode}.");

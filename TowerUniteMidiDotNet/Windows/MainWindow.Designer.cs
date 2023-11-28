@@ -15,7 +15,8 @@
 		{
 			if (disposing && (components != null))
 			{
-				components.Dispose();
+                playbackTimer?.Dispose();
+                components.Dispose();
 			}
 			base.Dispose(disposing);
 		}
@@ -40,6 +41,8 @@
             this.InputDeviceScanButton = new System.Windows.Forms.Button();
             this.DeviceComboBox = new System.Windows.Forms.ComboBox();
             this.tabPage2 = new System.Windows.Forms.TabPage();
+            this.label6 = new System.Windows.Forms.Label();
+            this.progressBar1 = new System.Windows.Forms.ProgressBar();
             this.label4 = new System.Windows.Forms.Label();
             this.label3 = new System.Windows.Forms.Label();
             this.MIDIPlaybackTransposeSlider = new System.Windows.Forms.TrackBar();
@@ -76,7 +79,7 @@
             this.TabControl.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.TabControl.Name = "TabControl";
             this.TabControl.SelectedIndex = 0;
-            this.TabControl.Size = new System.Drawing.Size(465, 352);
+            this.TabControl.Size = new System.Drawing.Size(465, 391);
             this.TabControl.TabIndex = 0;
             // 
             // tabPage1
@@ -92,7 +95,7 @@
             this.tabPage1.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.tabPage1.Name = "tabPage1";
             this.tabPage1.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.tabPage1.Size = new System.Drawing.Size(457, 319);
+            this.tabPage1.Size = new System.Drawing.Size(457, 358);
             this.tabPage1.TabIndex = 0;
             this.tabPage1.Text = "MIDI Device Setup";
             this.tabPage1.UseVisualStyleBackColor = true;
@@ -100,7 +103,7 @@
             // label5
             // 
             this.label5.AutoSize = true;
-            this.label5.Location = new System.Drawing.Point(148, 209);
+            this.label5.Location = new System.Drawing.Point(147, 234);
             this.label5.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label5.Name = "label5";
             this.label5.Size = new System.Drawing.Size(158, 20);
@@ -110,7 +113,7 @@
             // OctaveTranspositionSlider
             // 
             this.OctaveTranspositionSlider.LargeChange = 1;
-            this.OctaveTranspositionSlider.Location = new System.Drawing.Point(9, 234);
+            this.OctaveTranspositionSlider.Location = new System.Drawing.Point(9, 259);
             this.OctaveTranspositionSlider.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.OctaveTranspositionSlider.Maximum = 3;
             this.OctaveTranspositionSlider.Minimum = -3;
@@ -123,7 +126,7 @@
             // label2
             // 
             this.label2.AutoSize = true;
-            this.label2.Location = new System.Drawing.Point(8, 30);
+            this.label2.Location = new System.Drawing.Point(8, 29);
             this.label2.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(106, 20);
@@ -133,7 +136,7 @@
             // StopListeningButton
             // 
             this.StopListeningButton.Enabled = false;
-            this.StopListeningButton.Location = new System.Drawing.Point(9, 155);
+            this.StopListeningButton.Location = new System.Drawing.Point(9, 171);
             this.StopListeningButton.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.StopListeningButton.Name = "StopListeningButton";
             this.StopListeningButton.Size = new System.Drawing.Size(435, 49);
@@ -146,7 +149,7 @@
             // StartListeningButton
             // 
             this.StartListeningButton.Enabled = false;
-            this.StartListeningButton.Location = new System.Drawing.Point(9, 97);
+            this.StartListeningButton.Location = new System.Drawing.Point(9, 99);
             this.StartListeningButton.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.StartListeningButton.Name = "StartListeningButton";
             this.StartListeningButton.Size = new System.Drawing.Size(435, 49);
@@ -158,7 +161,7 @@
             // 
             // InputDeviceScanButton
             // 
-            this.InputDeviceScanButton.Location = new System.Drawing.Point(228, 52);
+            this.InputDeviceScanButton.Location = new System.Drawing.Point(228, 54);
             this.InputDeviceScanButton.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.InputDeviceScanButton.Name = "InputDeviceScanButton";
             this.InputDeviceScanButton.Size = new System.Drawing.Size(216, 35);
@@ -171,7 +174,7 @@
             // DeviceComboBox
             // 
             this.DeviceComboBox.FormattingEnabled = true;
-            this.DeviceComboBox.Location = new System.Drawing.Point(9, 55);
+            this.DeviceComboBox.Location = new System.Drawing.Point(9, 54);
             this.DeviceComboBox.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.DeviceComboBox.Name = "DeviceComboBox";
             this.DeviceComboBox.Size = new System.Drawing.Size(208, 28);
@@ -181,6 +184,8 @@
             // 
             // tabPage2
             // 
+            this.tabPage2.Controls.Add(this.label6);
+            this.tabPage2.Controls.Add(this.progressBar1);
             this.tabPage2.Controls.Add(this.label4);
             this.tabPage2.Controls.Add(this.label3);
             this.tabPage2.Controls.Add(this.MIDIPlaybackTransposeSlider);
@@ -192,15 +197,33 @@
             this.tabPage2.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.tabPage2.Name = "tabPage2";
             this.tabPage2.Padding = new System.Windows.Forms.Padding(4, 5, 4, 5);
-            this.tabPage2.Size = new System.Drawing.Size(457, 319);
+            this.tabPage2.Size = new System.Drawing.Size(457, 358);
             this.tabPage2.TabIndex = 1;
             this.tabPage2.Text = "MIDI Playback";
             this.tabPage2.UseVisualStyleBackColor = true;
             // 
+            // label6
+            // 
+            this.label6.AutoSize = true;
+            this.label6.Location = new System.Drawing.Point(175, 94);
+            this.label6.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            this.label6.Name = "label6";
+            this.label6.Size = new System.Drawing.Size(109, 20);
+            this.label6.TabIndex = 8;
+            this.label6.Text = "MIDI Duration";
+            // 
+            // progressBar1
+            // 
+            this.progressBar1.Cursor = System.Windows.Forms.Cursors.No;
+            this.progressBar1.Location = new System.Drawing.Point(9, 117);
+            this.progressBar1.Name = "progressBar1";
+            this.progressBar1.Size = new System.Drawing.Size(435, 28);
+            this.progressBar1.TabIndex = 7;
+            // 
             // label4
             // 
             this.label4.AutoSize = true;
-            this.label4.Location = new System.Drawing.Point(128, 209);
+            this.label4.Location = new System.Drawing.Point(130, 254);
             this.label4.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label4.Name = "label4";
             this.label4.Size = new System.Drawing.Size(190, 20);
@@ -210,7 +233,7 @@
             // label3
             // 
             this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(141, 100);
+            this.label3.Location = new System.Drawing.Point(145, 155);
             this.label3.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label3.Name = "label3";
             this.label3.Size = new System.Drawing.Size(162, 20);
@@ -220,7 +243,7 @@
             // MIDIPlaybackTransposeSlider
             // 
             this.MIDIPlaybackTransposeSlider.LargeChange = 1;
-            this.MIDIPlaybackTransposeSlider.Location = new System.Drawing.Point(9, 234);
+            this.MIDIPlaybackTransposeSlider.Location = new System.Drawing.Point(9, 279);
             this.MIDIPlaybackTransposeSlider.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MIDIPlaybackTransposeSlider.Maximum = 12;
             this.MIDIPlaybackTransposeSlider.Minimum = -12;
@@ -233,7 +256,7 @@
             // MIDIPlaybackSpeedSlider
             // 
             this.MIDIPlaybackSpeedSlider.LargeChange = 1;
-            this.MIDIPlaybackSpeedSlider.Location = new System.Drawing.Point(9, 125);
+            this.MIDIPlaybackSpeedSlider.Location = new System.Drawing.Point(9, 180);
             this.MIDIPlaybackSpeedSlider.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.MIDIPlaybackSpeedSlider.Maximum = 20;
             this.MIDIPlaybackSpeedSlider.Name = "MIDIPlaybackSpeedSlider";
@@ -286,10 +309,10 @@
             this.columnHeader1});
             this.EventListView.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.EventListView.HideSelection = false;
-            this.EventListView.Location = new System.Drawing.Point(18, 422);
+            this.EventListView.Location = new System.Drawing.Point(18, 461);
             this.EventListView.Margin = new System.Windows.Forms.Padding(4, 5, 4, 5);
             this.EventListView.Name = "EventListView";
-            this.EventListView.Size = new System.Drawing.Size(463, 232);
+            this.EventListView.Size = new System.Drawing.Size(461, 232);
             this.EventListView.TabIndex = 1;
             this.EventListView.UseCompatibleStateImageBehavior = false;
             this.EventListView.View = System.Windows.Forms.View.Details;
@@ -303,7 +326,7 @@
             // 
             this.label1.AutoSize = true;
             this.label1.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.label1.Location = new System.Drawing.Point(14, 397);
+            this.label1.Location = new System.Drawing.Point(18, 436);
             this.label1.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
             this.label1.Name = "label1";
             this.label1.Size = new System.Drawing.Size(84, 20);
@@ -336,21 +359,21 @@
             // FPSAdjustToolStripMenuItem
             // 
             this.FPSAdjustToolStripMenuItem.Name = "FPSAdjustToolStripMenuItem";
-            this.FPSAdjustToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.FPSAdjustToolStripMenuItem.Size = new System.Drawing.Size(250, 34);
             this.FPSAdjustToolStripMenuItem.Text = "FPS Adjust";
             this.FPSAdjustToolStripMenuItem.Click += new System.EventHandler(this.FPSAdjustToolStripMenuItem_Click);
             // 
             // autoTransposeToolStripMenuItem
             // 
             this.autoTransposeToolStripMenuItem.Name = "autoTransposeToolStripMenuItem";
-            this.autoTransposeToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.autoTransposeToolStripMenuItem.Size = new System.Drawing.Size(250, 34);
             this.autoTransposeToolStripMenuItem.Text = "Auto Transpose";
             this.autoTransposeToolStripMenuItem.Click += new System.EventHandler(this.AutoTransposeToolStripMenuItem_Click);
             // 
             // DetailedLoggingToolStripMenuItem
             // 
             this.DetailedLoggingToolStripMenuItem.Name = "DetailedLoggingToolStripMenuItem";
-            this.DetailedLoggingToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.DetailedLoggingToolStripMenuItem.Size = new System.Drawing.Size(250, 34);
             this.DetailedLoggingToolStripMenuItem.Text = "Detailed Logging";
             this.DetailedLoggingToolStripMenuItem.Click += new System.EventHandler(this.DetailedLoggingToolStripMenuItem_Click);
             // 
@@ -365,7 +388,7 @@
             // creditsToolStripMenuItem
             // 
             this.creditsToolStripMenuItem.Name = "creditsToolStripMenuItem";
-            this.creditsToolStripMenuItem.Size = new System.Drawing.Size(270, 34);
+            this.creditsToolStripMenuItem.Size = new System.Drawing.Size(169, 34);
             this.creditsToolStripMenuItem.Text = "Credits";
             this.creditsToolStripMenuItem.Click += new System.EventHandler(this.CreditsToolStripMenuItem_Click);
             // 
@@ -373,7 +396,7 @@
             // 
             this.checkboxDrums.AutoSize = true;
             this.checkboxDrums.Font = new System.Drawing.Font("Microsoft Sans Serif", 8F);
-            this.checkboxDrums.Location = new System.Drawing.Point(358, 393);
+            this.checkboxDrums.Location = new System.Drawing.Point(361, 435);
             this.checkboxDrums.Name = "checkboxDrums";
             this.checkboxDrums.Size = new System.Drawing.Size(118, 24);
             this.checkboxDrums.TabIndex = 7;
@@ -385,7 +408,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(501, 674);
+            this.ClientSize = new System.Drawing.Size(501, 707);
             this.Controls.Add(this.checkboxDrums);
             this.Controls.Add(this.label1);
             this.Controls.Add(this.EventListView);
@@ -445,5 +468,7 @@
         private System.Windows.Forms.ToolStripMenuItem creditsToolStripMenuItem;
         private System.Windows.Forms.CheckBox checkboxDrums;
         private System.Windows.Forms.ToolStripMenuItem autoTransposeToolStripMenuItem;
+        private System.Windows.Forms.Label label6;
+        private System.Windows.Forms.ProgressBar progressBar1;
     }
 }

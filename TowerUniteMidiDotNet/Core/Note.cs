@@ -58,7 +58,7 @@ namespace TowerUniteMidiDotNet.Core
             int noteNumber = NoteCharacter;
             if (AutoTransposeEnabled)
             {
-                noteNumber = TransposeToPlayableRange(noteNumber);
+                _ = TransposeToPlayableRange(noteNumber);
             }
             if (IsShiftedKey)
             {
