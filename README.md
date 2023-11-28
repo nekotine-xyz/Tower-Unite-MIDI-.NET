@@ -90,6 +90,12 @@ Please either raise an issue here on Github, message me on Twitter (@xelapilled)
 - Queue multiple MIDI files to play them in succession
 - A way to select specific instruments/channels from a MIDI file to play independently
 
+## Support Me
+
+If you're willing and able, and would like to support TUMDN's development, consider supporting me.
+
+https://ko-fi.com/xelapilled
+
 ## Credits
 
 Originally developed by Bailey Eaton, A.K.A Yoshify
