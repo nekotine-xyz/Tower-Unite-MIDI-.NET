@@ -14,7 +14,8 @@ Updates v1.2.1 and v1.2.2 are both being referred to as the "Drum Update" as mos
 
 Have fun! 🎹
 
-**Demo Video**
+Demo Video
+
 https://github.com/xelathing/Tower-Unite-MIDI-.NET/assets/104069981/30feff0b-5d5f-4a07-b495-f9fbb9a61df5
 
 ## Installation Guide
