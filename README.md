@@ -2,9 +2,11 @@
 
 ## Introduction 🎹
 
-Tower Unite MIDI .NET (TUMDN), originally developed by Bailey Eaton (Yoshify), is a program that acts as a gateway for MIDI devices to passthrough to Tower Unite'sinstruments. It allows players to play in-game instruments using real-life MIDI devices, or to play MIDI files. My updates have introduced new features, optimizations, and multiple improvements since Yoshify's release in 2019, and will continue to be in active development for the forseeable future.
+Tower Unite MIDI .NET (TUMDN), originally developed by Bailey Eaton (Yoshify), is a program that acts as a gateway for MIDI devices to passthrough to Tower Unite's instruments. It allows players to play in-game instruments using real-life MIDI devices, or to play MIDI files. My updates have introduced new features, optimizations, and multiple improvements since Yoshify's release in 2019, and will continue to be in active development for the forseeable future.
 
 Some parts of TUMDN have been completely rewritten, entirely new features have been written from scratch, and numerous bugs/crashes have been fixed. All in an effort to provide a fuller experience based on the foundation of Yoshify's original work. Currently, this is the best program for playing MIDI-enabled devices or files on Tower Unite.
+
+https://github.com/xelathing/Tower-Unite-MIDI-.NET/assets/104069981/30feff0b-5d5f-4a07-b495-f9fbb9a61df5
 
 ## Installation Guide
 
