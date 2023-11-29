@@ -6,6 +6,15 @@ Tower Unite MIDI .NET (TUMDN), originally developed by Bailey Eaton (Yoshify), i
 
 Some parts of TUMDN have been completely rewritten, entirely new features have been written from scratch, and numerous bugs/crashes have been fixed. All in an effort to provide a fuller experience based on the foundation of Yoshify's original work. Currently, this is the best program for playing MIDI-enabled devices or files on Tower Unite.
 
+### Latest Update
+
+**Tower Unite MIDI .NET v1.2.2 - Drum Update**
+
+Updates v1.2.1 and v1.2.2 are both being referred to as the "Drum Update" as most of the new code optimizations and features were designed around the development of Drum Mode. With Drum Mode, TUMDN is no longer piano-exclusive as Tower Unite's drumkit is now fully supported and integrated. Along with a plethora of additional quality-of-life features, this update shows what I believe Tower Unite's instrument systems are capable of at their best. This readme contains the full list of features, as well as release documentation with every update.
+
+Have fun! 🎹
+
+**Demo Video**
 https://github.com/xelathing/Tower-Unite-MIDI-.NET/assets/104069981/30feff0b-5d5f-4a07-b495-f9fbb9a61df5
 
 ## Installation Guide
