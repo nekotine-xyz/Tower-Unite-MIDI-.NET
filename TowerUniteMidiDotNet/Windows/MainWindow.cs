@@ -280,13 +280,14 @@ namespace TowerUniteMidiDotNet.Windows
                             note.Play();
                             if (detailedLogging)
                             {
+                                string noteRepresentation = note.IsShiftedKey ? $"^{note.NoteCharacter}" : $"{note.NoteCharacter}";
                                 if (isAutoTranspositionEnabled && originalNoteNumber != transposedNoteNumber)
                                 {
-                                    Log($"[AutoTranspose] Playing note from MIDI number {originalNoteNumber} to {transposedNoteNumber}.");
+                                    Log($"[AutoTranspose] MIDI number {originalNoteNumber} to {transposedNoteNumber}, character {noteRepresentation}.");
                                 }
                                 else
                                 {
-                                    Log($"Played piano note: MIDI number {transposedNoteNumber}, character {note.NoteCharacter}");
+                                    Log($"Played piano note: MIDI number {transposedNoteNumber}, character {noteRepresentation}");
                                 }
                             }
                         }
@@ -427,17 +428,21 @@ namespace TowerUniteMidiDotNet.Windows
                         note.Play();
                         if (detailedLogging)
                         {
-                            Invoke((MethodInvoker)(() =>
+                            string noteRepresentation = note.IsShiftedKey ? $"^{note.NoteCharacter}" : $"{note.NoteCharacter}";
+                            if (isAutoTranspositionEnabled && originalNoteNumber != transposedNoteNumber)
                             {
-                                if (isAutoTranspositionEnabled && originalNoteNumber != transposedNoteNumber)
+                                Invoke((MethodInvoker)(() =>
                                 {
-                                    Log($"[AutoTranspose] Playing note from MIDI number {originalNoteNumber} to {transposedNoteNumber}.");
-                                }
-                                else
+                                    Log($"[AutoTranspose] MIDI number {originalNoteNumber} to {transposedNoteNumber}, character {noteRepresentation}.");
+                                }));
+                            }
+                            else
+                            {
+                                Invoke((MethodInvoker)(() =>
                                 {
-                                    Log($"Received MIDI number {transposedNoteNumber}, the note is {(note.IsShiftedKey ? "^" : string.Empty)}{note.NoteCharacter}.");
-                                }
-                            }));
+                                    Log($"Received MIDI number {transposedNoteNumber}, the note is {noteRepresentation}.");
+                                }));
+                            }
                         }
                     }
                     else if (!isAutoTranspositionEnabled)
@@ -447,8 +452,8 @@ namespace TowerUniteMidiDotNet.Windows
                             Log($"Piano note out of range: MIDI number {originalNoteNumber} cannot be played in Tower Unite.");
                         }));
                     }
+                    // handle other MIDI events as needed
                 }
-                // handle other MIDI events as needed
             }
         }
 
