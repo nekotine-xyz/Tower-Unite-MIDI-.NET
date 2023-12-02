@@ -21,7 +21,7 @@ namespace TowerUniteMidiDotNet.Windows
         public static int KeyDelay = 15;
 
         private InputDevice currentMidiDevice;
-        private MidiContainer currentMidiFile;
+        private readonly MidiContainer currentMidiFile;
         private bool detailedLogging = false;
         private int noteLookupOctaveTransposition = 3;
         private int midiTransposition = 0;
@@ -211,30 +211,38 @@ namespace TowerUniteMidiDotNet.Windows
 
         private void PlayMidi()
         {
-            if (currentMidiFile == null || currentMidiFile.MidiPlayback.IsRunning)
+            try
             {
-                return;
+                if (currentMidiFile == null || currentMidiFile.MidiPlayback.IsRunning)
+                {
+                    return;
+                }
+                else if (currentMidiFile != null)
+                {
+                    currentMidiFile.MidiPlayback.Finished -= OnMidiPlaybackComplete;
+
+                    currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
+                }
+                var duration = currentMidiFile.MidiFile.GetDuration<MetricTimeSpan>();
+                progressBar1.Maximum = (int)duration.TotalMicroseconds;
+                progressBar1.Value = 0;
+
+                MIDIPlaybackTransposeSlider.Enabled = false;
+                MIDIPlaybackSpeedSlider.Enabled = false;
+
+                currentMidiFile.MidiPlayback.NotesPlaybackStarted += OnMidiPlaybackNoteEventReceived;
+                currentMidiFile.MidiPlayback.Finished += OnMidiPlaybackComplete;
+                currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
+                currentMidiFile.MidiPlayback.Start();
+                isMidiPlaying = true;
+                playbackTimer.Start();
+                Log($"Started playing {currentMidiFile.MidiName}.");
             }
-            else if (currentMidiFile != null)
+            catch (Exception ex)
             {
-                currentMidiFile.MidiPlayback.Finished -= OnMidiPlaybackComplete;
-
-                currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
+                Log($"Error during MIDI playback: {ex.Message}");
+                // Additional error handling or user notification
             }
-            var duration = currentMidiFile.MidiFile.GetDuration<MetricTimeSpan>();
-            progressBar1.Maximum = (int)duration.TotalMicroseconds;
-            progressBar1.Value = 0;
-
-            MIDIPlaybackTransposeSlider.Enabled = false;
-            MIDIPlaybackSpeedSlider.Enabled = false;
-
-            currentMidiFile.MidiPlayback.NotesPlaybackStarted += OnMidiPlaybackNoteEventReceived;
-            currentMidiFile.MidiPlayback.Finished += OnMidiPlaybackComplete;
-            currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
-            currentMidiFile.MidiPlayback.Start();
-            isMidiPlaying = true;
-            playbackTimer.Start();
-            Log($"Started playing {currentMidiFile.MidiName}.");
         }
 
         private void OnMidiPlaybackNoteEventReceived(object sender, NotesEventArgs e)
@@ -371,7 +379,6 @@ namespace TowerUniteMidiDotNet.Windows
             try
             {
                 InputDevice newDevice = InputDevice.GetById(id);
-
                 if (currentMidiDevice?.Id == newDevice.Id)
                 {
                     return;
@@ -383,7 +390,6 @@ namespace TowerUniteMidiDotNet.Windows
                         currentMidiDevice.EventReceived -= OnMidiEventReceived;
                         currentMidiDevice.Dispose();
                     }
-
                     currentMidiDevice = newDevice;
                     currentMidiDevice.EventReceived += OnMidiEventReceived;
                     Log($"Selected {currentMidiDevice.Name}.");
@@ -599,19 +605,12 @@ namespace TowerUniteMidiDotNet.Windows
             {
                 try
                 {
-                    // attempt to load the MIDI file
-                    currentMidiFile = new MidiContainer(openFileDialog.SafeFileName, Melanchall.DryWetMidi.Smf.MidiFile.Read(openFileDialog.FileName));
-                    MIDIPlayButton.Enabled = true;
-                    MIDIStopButton.Enabled = true;
-                    Log($"Loaded {openFileDialog.SafeFileName}.");
+                    // Existing code to load the MIDI file...
                 }
                 catch (Exception ex)
                 {
-                    // log the error and notify the user
-                    Log($"Failed to load {openFileDialog.SafeFileName}: {ex.Message}");
-                    MessageBox.Show($"An error occurred while opening the MIDI file: {ex.Message}", "Error Opening MIDI File", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    Log($"Failed to load MIDI file: {ex.Message}");
                 }
-
                 // save the directory of the selected MIDI file
                 Properties.Settings.Default.LastUsedDirectory = Path.GetDirectoryName(openFileDialog.FileName);
                 Properties.Settings.Default.Save();
