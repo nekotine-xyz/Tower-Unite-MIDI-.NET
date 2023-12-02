@@ -149,7 +149,13 @@ namespace TowerUniteMidiDotNet.Windows
         {
             DeviceComboBox.Items.Clear();
 
-            foreach (InputDevice device in InputDevice.GetAll())
+            var devices = InputDevice.GetAll();
+            if (!devices.Any())
+            {
+                Log("No MIDI devices found.");
+                return;
+            }
+            foreach (InputDevice device in devices)
             {
                 DeviceComboBox.Items.Add($"{device.Name} ID:{device.Id}");
             }
@@ -171,7 +177,6 @@ namespace TowerUniteMidiDotNet.Windows
                     {
                         break;
                     }
-
                     if (!char.IsLetterOrDigit(qwertyLookup[row * 12 + column]) || char.IsUpper(qwertyLookup[row * 12 + column]))
                     {
                         noteLookup.Add((row + noteLookupOctaveTransposition) * 12 + column, new Core.Note(qwertyLookup[(row * 12 + column) - 1], true));
@@ -182,28 +187,19 @@ namespace TowerUniteMidiDotNet.Windows
                     }
                 }
             }
-
             Log($"Note dictionary built. Middle C is C{noteLookupOctaveTransposition + 1}.");
         }
 
         private void Log(string logText)
         {
-            // check if the current method call is on a different thread than the one that created the EventListView control
             if (EventListView.InvokeRequired)
             {
-                // if it is on a different thread, invoke the Log method on the UI thread
-                // this ensures that the Log method is executed on the correct thread
                 EventListView.Invoke(new Action<string>(Log), logText);
             }
             else
             {
-                // if the current method call is already on the UI thread, insert the logText at the top of the EventListView control
                 EventListView.Items.Insert(0, logText);
-
-                // ensure the newest log item is visible in the EventListView control
                 EventListView.EnsureVisible(0);
-
-                // if there are more than 100 items in the EventListView, remove the oldest one (which is the last one in the list)
                 if (EventListView.Items.Count > 100)
                 {
                     EventListView.Items.RemoveAt(EventListView.Items.Count - 1);
@@ -225,7 +221,6 @@ namespace TowerUniteMidiDotNet.Windows
 
                 currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
             }
-
             var duration = currentMidiFile.MidiFile.GetDuration<MetricTimeSpan>();
             progressBar1.Maximum = (int)duration.TotalMicroseconds;
             progressBar1.Value = 0;
@@ -370,27 +365,55 @@ namespace TowerUniteMidiDotNet.Windows
         #endregion
 
         #region MIDI In
-
+        
         private void SelectDevice(int id)
         {
-            InputDevice newDevice = InputDevice.GetById(id);
+            try
+            {
+                InputDevice newDevice = InputDevice.GetById(id);
 
-            if (currentMidiDevice?.Id == newDevice.Id)
-            {
-                return;
-            }
-            else
-            {
-                if (currentMidiDevice != null)
+                if (currentMidiDevice?.Id == newDevice.Id)
                 {
-                    currentMidiDevice.EventReceived -= OnMidiEventReceived;
-                    currentMidiDevice.Dispose();
+                    return;
+                }
+                else
+                {
+                    if (currentMidiDevice != null)
+                    {
+                        currentMidiDevice.EventReceived -= OnMidiEventReceived;
+                        currentMidiDevice.Dispose();
+                    }
+
+                    currentMidiDevice = newDevice;
+                    currentMidiDevice.EventReceived += OnMidiEventReceived;
+                    Log($"Selected {currentMidiDevice.Name}.");
                 }
             }
+            catch (Exception ex)
+            {
+                Log($"Error selecting device: {ex.Message}");
+            }
+        }
 
-            currentMidiDevice = newDevice;
-            currentMidiDevice.EventReceived += OnMidiEventReceived;
-            Log($"Selected {currentMidiDevice.Name}.");
+        private void AttemptReconnectToDevice()
+        {
+            if (currentMidiDevice != null)
+            {
+                var deviceId = currentMidiDevice.Id;
+                currentMidiDevice.Dispose();
+
+                try
+                {
+                    currentMidiDevice = InputDevice.GetById(deviceId);
+                    currentMidiDevice.EventReceived += OnMidiEventReceived;
+                    currentMidiDevice.StartEventsListening();
+                    Log($"Reconnected to {currentMidiDevice.Name}.");
+                }
+                catch (Exception ex)
+                {
+                    Log($"Error reconnecting to device: {ex.Message}");
+                }
+            }
         }
 
         private void StartListening()
@@ -407,56 +430,63 @@ namespace TowerUniteMidiDotNet.Windows
 
         private void OnMidiEventReceived(object sender, MidiEventReceivedEventArgs e)
         {
-            if (e.Event is NoteOnEvent noteEvent && noteEvent.Velocity > 0)
+            try
             {
-                // Only process notes on the drum channel if Drum Mode is enabled
-                if (isDrumModeEnabled && noteEvent.Channel == (FourBitNumber)9)
+                if (e.Event is NoteOnEvent noteEvent && noteEvent.Velocity > 0)
                 {
-                    OnDrumEventReceived(noteEvent.NoteNumber);
-                }
-                else if (!isDrumModeEnabled)
-                {
-                    int originalNoteNumber = noteEvent.NoteNumber + midiTransposition;
-                    int transposedNoteNumber = originalNoteNumber;
-                    // transpose the note if it's out of range and auto transpose is enabled
-                    if (isAutoTranspositionEnabled)
+                    // only process notes on the drum channel if Drum Mode is enabled
+                    if (isDrumModeEnabled && noteEvent.Channel == (FourBitNumber)9)
                     {
-                        transposedNoteNumber = Core.Note.TransposeToPlayableRange(originalNoteNumber);
+                        OnDrumEventReceived(noteEvent.NoteNumber);
                     }
-                    if (noteLookup.TryGetValue(transposedNoteNumber, out Core.Note note))
+                    else if (!isDrumModeEnabled)
                     {
-                        note.Play();
-                        if (detailedLogging)
+                        int originalNoteNumber = noteEvent.NoteNumber + midiTransposition;
+                        int transposedNoteNumber = originalNoteNumber;
+                        // transpose the note if it's out of range and auto transpose is enabled
+                        if (isAutoTranspositionEnabled)
                         {
-                            string noteRepresentation = note.IsShiftedKey ? $"^{note.NoteCharacter}" : $"{note.NoteCharacter}";
-                            if (isAutoTranspositionEnabled && originalNoteNumber != transposedNoteNumber)
+                            transposedNoteNumber = Core.Note.TransposeToPlayableRange(originalNoteNumber);
+                        }
+                        if (noteLookup.TryGetValue(transposedNoteNumber, out Core.Note note))
+                        {
+                            note.Play();
+                            if (detailedLogging)
                             {
-                                Invoke((MethodInvoker)(() =>
+                                string noteRepresentation = note.IsShiftedKey ? $"^{note.NoteCharacter}" : $"{note.NoteCharacter}";
+                                if (isAutoTranspositionEnabled && originalNoteNumber != transposedNoteNumber)
                                 {
-                                    Log($"[AutoTranspose] MIDI number {originalNoteNumber} to {transposedNoteNumber}, character {noteRepresentation}.");
-                                }));
-                            }
-                            else
-                            {
-                                Invoke((MethodInvoker)(() =>
+                                    Invoke((MethodInvoker)(() =>
+                                    {
+                                        Log($"[AutoTranspose] MIDI number {originalNoteNumber} to {transposedNoteNumber}, character {noteRepresentation}.");
+                                    }));
+                                }
+                                else
                                 {
-                                    Log($"Received MIDI number {transposedNoteNumber}, the note is {noteRepresentation}.");
-                                }));
+                                    Invoke((MethodInvoker)(() =>
+                                    {
+                                        Log($"Received MIDI number {transposedNoteNumber}, the note is {noteRepresentation}.");
+                                    }));
+                                }
                             }
                         }
-                    }
-                    else if (!isAutoTranspositionEnabled)
-                    {
-                        Invoke((MethodInvoker)(() =>
+                        else if (!isAutoTranspositionEnabled)
                         {
-                            Log($"Piano note out of range: MIDI number {originalNoteNumber} cannot be played in Tower Unite.");
-                        }));
+                            Invoke((MethodInvoker)(() =>
+                            {
+                                Log($"Piano note out of range: MIDI number {originalNoteNumber} cannot be played in Tower Unite.");
+                            }));
+                        }
+                        // handle other MIDI events as needed
                     }
-                    // handle other MIDI events as needed
                 }
             }
+            catch (Exception ex)
+            {
+                Log($"Error processing MIDI event: {ex.Message}");
+                AttemptReconnectToDevice();
+            }
         }
-
 
         #endregion
 
