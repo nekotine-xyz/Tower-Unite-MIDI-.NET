@@ -8,7 +8,6 @@ static class Program
 {
     // list the required DLLs
     private static readonly string[] RequiredDlls = {
-        "WindowsInput.dll",
         "Melanchall.DryWetMidi.dll",
         "NHotkey.dll",
         "NHotkey.WindowsForms.dll"
