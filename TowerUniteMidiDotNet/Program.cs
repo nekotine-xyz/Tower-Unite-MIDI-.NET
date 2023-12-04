@@ -11,7 +11,9 @@ static class Program
         "WindowsInput.dll",
         "Melanchall.DryWetMidi.dll",
         "NHotkey.dll",
-        "NHotkey.WindowsForms.dll"
+        "NHotkey.WindowsForms.dll",
+        "Melanchall_DryWetMidi_Native32.dll",
+        "Melanchall_DryWetMidi_Native64.dylib"
     };
 
     [STAThread]
