@@ -1,27 +1,26 @@
 ﻿using Melanchall.DryWetMidi.Common;
-using Melanchall.DryWetMidi.Devices;
-using Melanchall.DryWetMidi.Smf;
+using Melanchall.DryWetMidi.Core;
+using Melanchall.DryWetMidi.Interaction;
+using Melanchall.DryWetMidi.Multimedia;
 using NHotkey;
 using NHotkey.WindowsForms;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Windows.Forms;
 using System.Linq;
-using TowerUniteMidiDotNet.Core;
+using System.Windows.Forms;
 using WindowsInput.Native;
-using Melanchall.DryWetMidi.Smf.Interaction;
 
 namespace TowerUniteMidiDotNet.Windows
 {
     public partial class MainWindow : Form
     {
-        public const string Version = "1.2";
-        public static int KeyDelay = 15;
+        public const string Version = "1.2.3";
+        public static int KeyDelay = 20;
 
         private InputDevice currentMidiDevice;
-        private readonly MidiContainer currentMidiFile;
+        private MidiContainer currentMidiFile;
         private bool detailedLogging = false;
         private int noteLookupOctaveTransposition = 3;
         private int midiTransposition = 0;
@@ -54,27 +53,27 @@ namespace TowerUniteMidiDotNet.Windows
             { 37, VirtualKeyCode.VK_G }, // Side Stick -> Snare Rim
             { 54, VirtualKeyCode.VK_G }, // Tambourine -> Snare Rim
             { 82, VirtualKeyCode.VK_G }, // Shaker -> Snare Rim
-			{ 38, VirtualKeyCode.VK_F },  // Acoustic Snare -> Snare
-			{ 39, VirtualKeyCode.VK_B }, // Hand Clap -> Clap
-			{ 40, VirtualKeyCode.VK_F },  // Electric Snare -> Snare
-			{ 46, VirtualKeyCode.VK_D },  // Open Hi-hat -> Closed Hit-Hat (OPEN HI HAT SOUNDS AWFUL!)
-			{ 42, VirtualKeyCode.VK_D },  // Closed Hi-hat -> Closed Hi-Hat
-			{ 44, VirtualKeyCode.VK_D },  // Pedal Hi-Hat -> Closed Hi-Hat
-			{ 49, VirtualKeyCode.VK_R },  // Crash Cymbal 1 -> Crash Cymbal 1
-			{ 52, VirtualKeyCode.VK_R },  // Chinese Cymbal -> Crash Cymbal 1
-			{ 55, VirtualKeyCode.VK_U },  // Splash Cymbal -> Crash Cymbal 2
-			{ 57, VirtualKeyCode.VK_U },  // Crash Cymbal 2 -> Crash Cymbal 2
-			{ 50, VirtualKeyCode.VK_T },  // High Tom -> High Tom
-			{ 48, VirtualKeyCode.VK_Y },  // Mid Tom -> Mid Tom
-			{ 43, VirtualKeyCode.VK_Y },  // High Floor Tom -> Mid Tom
-			{ 45, VirtualKeyCode.VK_J },  // Low Tom -> Floor Tom
-			{ 47, VirtualKeyCode.VK_Y },  // Low-Mid Tom -> Mid Tom
-			{ 41, VirtualKeyCode.VK_J },  // Low Floor Tom -> Floor Tom
+			{ 38, VirtualKeyCode.VK_F }, // Acoustic Snare -> Snare
+			{ 40, VirtualKeyCode.VK_F }, // Electric Snare -> Snare
+            { 39, VirtualKeyCode.VK_B }, // Hand Clap -> Clap
+			{ 46, VirtualKeyCode.VK_D }, // Open Hi-hat -> Closed Hit-Hat (OPEN HI HAT SOUNDS AWFUL!)
+			{ 42, VirtualKeyCode.VK_D }, // Closed Hi-hat -> Closed Hi-Hat
+			{ 44, VirtualKeyCode.VK_D }, // Pedal Hi-Hat -> Closed Hi-Hat
+			{ 49, VirtualKeyCode.VK_R }, // Crash Cymbal 1 -> Crash Cymbal 1
+			{ 52, VirtualKeyCode.VK_R }, // Chinese Cymbal -> Crash Cymbal 1
+			{ 55, VirtualKeyCode.VK_U }, // Splash Cymbal -> Crash Cymbal 2
+			{ 57, VirtualKeyCode.VK_U }, // Crash Cymbal 2 -> Crash Cymbal 2
+			{ 50, VirtualKeyCode.VK_T }, // High Tom -> High Tom
+            { 43, VirtualKeyCode.VK_T }, // High Floor Tom -> High Tom
+			{ 48, VirtualKeyCode.VK_Y }, // Mid Tom -> Mid Tom
+			{ 47, VirtualKeyCode.VK_Y }, // Low-Mid Tom -> Mid Tom
+            { 45, VirtualKeyCode.VK_J }, // Low Tom -> Floor Tom
+			{ 41, VirtualKeyCode.VK_J }, // Low Floor Tom -> Floor Tom
 			// ... why isn't there a ride cymbal in Tower Unite???
-			//{ 51, VirtualKeyCode.VK_U },  // Ride Cymbal -> Crash Cymbal 2
-			{ 51, VirtualKeyCode.VK_D },  // Ride Cymbal -> Closed Hi-Hat
-			{ 59, VirtualKeyCode.VK_U },  // Ride Cymbal 2 -> Crash Cymbal 2
-			{ 53, VirtualKeyCode.VK_D },  // Ride Bell -> Closed Hi-hat
+			//{ 51, VirtualKeyCode.VK_U }, // Ride Cymbal -> Crash Cymbal 2
+			{ 51, VirtualKeyCode.VK_D }, // Ride Cymbal -> Closed Hi-Hat
+			{ 53, VirtualKeyCode.VK_D }, // Ride Bell -> Closed Hi-hat
+            { 59, VirtualKeyCode.VK_U }, // Ride Cymbal 2 -> Crash Cymbal 2
 		};
 
         /// <summary>
@@ -102,21 +101,17 @@ namespace TowerUniteMidiDotNet.Windows
                 MessageBox.Show("Tower Unite MIDI .NET is already running!", "Instance Check", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
                 Environment.Exit(0); // terminate this instance
             }
-
             InitializeComponent();
-
             ScanDevices();
             BuildNoteDictionary();
-
             playbackTimer = new Timer
             {
-                Interval = 1000 // Update every second
+                Interval = 100
             };
             playbackTimer.Tick += new EventHandler(PlaybackTimer_Tick);
             MIDIPlaybackSpeedSlider.Value = 10;
             MIDIPlaybackTransposeSlider.Value = 0;
             OctaveTranspositionSlider.Value = 0;
-
             try
             {
                 HotkeyManager.Current.AddOrReplace("Start", startKey, OnHotkeyPress);
@@ -124,10 +119,8 @@ namespace TowerUniteMidiDotNet.Windows
             }
             catch (NHotkey.HotkeyAlreadyRegisteredException)
             {
-                // this should not occur with my check for multiple instances, but if it does I need to know why
-                MessageBox.Show("A hotkey is already in use! Please report this on the Github, or xelapilled on Twitter or Discord.");
+                MessageBox.Show("A hotkey is already in use! Please close programs that might be using F1 or F2 as hotkeys, and restart TUMDN.");
             }
-
             Text += " " + Version;
         }
 
@@ -148,7 +141,6 @@ namespace TowerUniteMidiDotNet.Windows
         private void ScanDevices()
         {
             DeviceComboBox.Items.Clear();
-
             var devices = InputDevice.GetAll();
             if (!devices.Any())
             {
@@ -157,7 +149,7 @@ namespace TowerUniteMidiDotNet.Windows
             }
             foreach (InputDevice device in devices)
             {
-                DeviceComboBox.Items.Add($"{device.Name} ID:{device.Id}");
+                DeviceComboBox.Items.Add(device.Name); // Only the device name is added
             }
         }
 
@@ -236,12 +228,12 @@ namespace TowerUniteMidiDotNet.Windows
                 currentMidiFile.MidiPlayback.Start();
                 isMidiPlaying = true;
                 playbackTimer.Start();
+
                 Log($"Started playing {currentMidiFile.MidiName}.");
             }
             catch (Exception ex)
             {
                 Log($"Error during MIDI playback: {ex.Message}");
-                // Additional error handling or user notification
             }
         }
 
@@ -249,7 +241,7 @@ namespace TowerUniteMidiDotNet.Windows
         {
             foreach (var midiNote in e.Notes)
             {
-                // Only process notes on the drum channel if Drum Mode is enabled
+                // only process notes on the drum channel if Drum Mode is enabled
                 if (isDrumModeEnabled && midiNote.Channel == (FourBitNumber)9)
                 {
                     if (drumMapping.TryGetValue(midiNote.NoteNumber, out VirtualKeyCode keyCode))
@@ -277,7 +269,6 @@ namespace TowerUniteMidiDotNet.Windows
                         {
                             transposedNoteNumber = Core.Note.TransposeToPlayableRange(originalNoteNumber);
                         }
-
                         if (noteLookup.TryGetValue(transposedNoteNumber, out Core.Note note))
                         {
                             note.Play();
@@ -373,27 +364,24 @@ namespace TowerUniteMidiDotNet.Windows
         #endregion
 
         #region MIDI In
-        
-        private void SelectDevice(int id)
+
+        private void SelectDevice(int index)
         {
             try
             {
-                InputDevice newDevice = InputDevice.GetById(id);
-                if (currentMidiDevice?.Id == newDevice.Id)
+                InputDevice newDevice = InputDevice.GetByIndex(index);
+                if (currentMidiDevice != null && newDevice.GetHashCode() == currentMidiDevice.GetHashCode())
                 {
-                    return;
+                    return; // device is already selected
                 }
-                else
+                if (currentMidiDevice != null)
                 {
-                    if (currentMidiDevice != null)
-                    {
-                        currentMidiDevice.EventReceived -= OnMidiEventReceived;
-                        currentMidiDevice.Dispose();
-                    }
-                    currentMidiDevice = newDevice;
-                    currentMidiDevice.EventReceived += OnMidiEventReceived;
-                    Log($"Selected {currentMidiDevice.Name}.");
+                    currentMidiDevice.EventReceived -= OnMidiEventReceived;
+                    currentMidiDevice.Dispose();
                 }
+                currentMidiDevice = newDevice;
+                currentMidiDevice.EventReceived += OnMidiEventReceived;
+                Log($"Selected {currentMidiDevice.Name}.");
             }
             catch (Exception ex)
             {
@@ -405,12 +393,12 @@ namespace TowerUniteMidiDotNet.Windows
         {
             if (currentMidiDevice != null)
             {
-                var deviceId = currentMidiDevice.Id;
+                string deviceName = currentMidiDevice.Name;
                 currentMidiDevice.Dispose();
 
                 try
                 {
-                    currentMidiDevice = InputDevice.GetById(deviceId);
+                    currentMidiDevice = InputDevice.GetByName(deviceName);
                     currentMidiDevice.EventReceived += OnMidiEventReceived;
                     currentMidiDevice.StartEventsListening();
                     Log($"Reconnected to {currentMidiDevice.Name}.");
@@ -551,26 +539,23 @@ namespace TowerUniteMidiDotNet.Windows
 
         private void RestartMidi()
         {
-            StopMidi(); // Stop MIDI playback if it's currently running
-
+            StopMidi();
             if (currentMidiFile != null)
             {
-                // Reset the MIDI playback position to the start
                 currentMidiFile.MidiPlayback.MoveToStart();
 
-                // Start MIDI playback
                 PlayMidi();
             }
         }
 
         private void DeviceComboBox_SelectedIndexChanged(object sender, EventArgs e)
         {
-            if (InputDevice.GetById(DeviceComboBox.SelectedIndex) == currentMidiDevice)
+            int selectedIndex = DeviceComboBox.SelectedIndex;
+            if (selectedIndex < 0 || selectedIndex >= InputDevice.GetDevicesCount())
             {
                 return;
             }
-
-            SelectDevice(DeviceComboBox.SelectedIndex);
+            SelectDevice(selectedIndex);
             StartListeningButton.Enabled = true;
             StopListeningButton.Enabled = true;
         }
@@ -605,15 +590,36 @@ namespace TowerUniteMidiDotNet.Windows
             {
                 try
                 {
-                    // Existing code to load the MIDI file...
+                    // attempt to load the MIDI file
+                    currentMidiFile = new MidiContainer(openFileDialog.SafeFileName, MidiFile.Read(openFileDialog.FileName));
+                    MIDIPlayButton.Enabled = true;
+                    MIDIStopButton.Enabled = true;
+                    Log($"Loaded {openFileDialog.SafeFileName}.");
+                    LogInitialTempo(currentMidiFile.MidiFile);
                 }
                 catch (Exception ex)
                 {
-                    Log($"Failed to load MIDI file: {ex.Message}");
+                    // log the error and notify the user
+                    Log($"Failed to load {openFileDialog.SafeFileName}: {ex.Message}");
+                    MessageBox.Show($"An error occurred while opening the MIDI file: {ex.Message}", "Error Opening MIDI File", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
                 // save the directory of the selected MIDI file
                 Properties.Settings.Default.LastUsedDirectory = Path.GetDirectoryName(openFileDialog.FileName);
                 Properties.Settings.Default.Save();
+            }
+        }
+
+        private void LogInitialTempo(MidiFile midiFile)
+        {
+            foreach (var trackChunk in midiFile.GetTrackChunks())
+            {
+                var setTempoEvent = trackChunk.Events.OfType<SetTempoEvent>().FirstOrDefault();
+                if (setTempoEvent != null)
+                {
+                    double bpm = 60000000 / setTempoEvent.MicrosecondsPerQuarterNote;
+                    Log($"Initial Tempo: {bpm:F2} BPM");
+                    break;
+                }
             }
         }
 
@@ -647,7 +653,7 @@ namespace TowerUniteMidiDotNet.Windows
                 {
                     // reset the key press duration to default if Cancel was clicked or the dialog was closed
                     Core.Note.KeyPressDuration = MainWindow.KeyDelay;
-                    Log("FPS adjustment cancelled or reset. Key press duration set to default.");
+                    Log($"FPS adjustment reset. Key press duration set to default {Core.Note.KeyPressDuration}ms.");
                 }
             }
         }

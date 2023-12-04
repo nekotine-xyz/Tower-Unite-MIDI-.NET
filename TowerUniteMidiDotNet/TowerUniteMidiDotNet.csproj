@@ -67,15 +67,6 @@
     <SignManifests>true</SignManifests>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="Melanchall.DryWetMidi">
-      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\Melanchall.DryWetMidi.dll</HintPath>
-    </Reference>
-    <Reference Include="NHotkey">
-      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\NHotkey.dll</HintPath>
-    </Reference>
-    <Reference Include="NHotkey.WindowsForms">
-      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\NHotkey.WindowsForms.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
     <Reference Include="System.Xml.Linq" />
@@ -90,9 +81,6 @@
     <Reference Include="UIAutomationClient" />
     <Reference Include="UIAutomationProvider" />
     <Reference Include="WindowsBase" />
-    <Reference Include="WindowsInput">
-      <HintPath>..\..\..\..\OneDrive\Desktop\TUMDNv1.2\WindowsInput.dll</HintPath>
-    </Reference>
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Windows\FpsInputDialog.cs">
@@ -156,11 +144,14 @@
     <PackageReference Include="InputSimulatorPlus">
       <Version>1.0.7</Version>
     </PackageReference>
+    <PackageReference Include="Melanchall.DryWetMidi">
+      <Version>7.0.1</Version>
+    </PackageReference>
     <PackageReference Include="NHotkey">
-      <Version>1.2.1</Version>
+      <Version>2.1.1</Version>
     </PackageReference>
     <PackageReference Include="NHotkey.WindowsForms">
-      <Version>1.2.1</Version>
+      <Version>2.1.1</Version>
     </PackageReference>
   </ItemGroup>
   <ItemGroup>
