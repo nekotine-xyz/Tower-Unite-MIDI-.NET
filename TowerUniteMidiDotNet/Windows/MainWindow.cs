@@ -518,7 +518,7 @@ namespace TowerUniteMidiDotNet.Windows
                                 Log($"Piano note out of range: MIDI number {originalNoteNumber} cannot be played in Tower Unite.");
                             }));
                         }
-                     // handle other MIDI events as needed
+                        // handle other MIDI events as needed
                     }
                 }
             }
