@@ -8,13 +8,17 @@ Some parts of TUMDN have been completely rewritten, entirely new features have b
 
 ### Latest Update
 
-**Tower Unite MIDI .NET v1.2.2 - Drum Update**
+**Tower Unite MIDI .NET v1.2.3 - More Control**
 
-Updates v1.2.1 and v1.2.2 are both being referred to as the "Drum Update" as most of the new code optimizations and features were designed around the development of Drum Mode. With Drum Mode, TUMDN is no longer piano-exclusive as Tower Unite's drumkit is now fully supported and integrated. Along with a plethora of additional quality-of-life features, this update shows what I believe Tower Unite's instrument systems are capable of at their best. This readme contains the full list of features, as well as release documentation with every update.
+Continuing the momentum from the Drum Update in versions 1.2-1.2.2, TUMDN 1.2.3 brings an array of new features and enhancements designed around user control and convenience. While Drum Mode stands as the highlight, showcasing the versatality and potential of Tower Unite's instruments, this latest update adds significant improvements to the overall experience.
+
+In version 1.2.3, players gain more options for control over their experience with the introduction of Pause & Play for MIDI file playback. The Dynamic Speed Slider is another addition offering real-time speed adjustments during playback. Enhancements include an updated FPS Adjust Tool with a more precise calculation and improved MIDI device handling for smoother connectivity and error recovery. Alongside these, the update also addresses several issues and adds new drum mappings.
+
+Drum Update remains a centerpiece, but TUMDN v1.2.3 should make everything smoother and more convenient overall.
 
 Have fun! 🎹
 
-Demo Video
+## Demo Video
 
 https://github.com/xelathing/Tower-Unite-MIDI-.NET/assets/104069981/30feff0b-5d5f-4a07-b495-f9fbb9a61df5
 
