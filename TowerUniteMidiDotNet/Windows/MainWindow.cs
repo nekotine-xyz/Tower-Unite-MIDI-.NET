@@ -645,18 +645,17 @@ namespace TowerUniteMidiDotNet.Windows
                 var result = fpsDialog.ShowDialog(this);
                 if (result == DialogResult.OK)
                 {
-                    // call the method to update key press duration based on confirmed FPS
-                    FpsInputDialog.UpdateKeyPressDurationFromFPS(fpsDialog.Fps);
-                    Log($"FPS adjusted to {fpsDialog.Fps} with key press duration set to {Core.Note.KeyPressDuration}ms.");
+                    int newKeyPressDuration = FpsInputDialog.UpdateKeyPressDurationFromFPS(fpsDialog.Fps);
+                    Log($"FPS adjusted to {fpsDialog.Fps} with key press duration set to {newKeyPressDuration}ms.");
                 }
                 else
                 {
-                    // reset the key press duration to default if Cancel was clicked or the dialog was closed
                     Core.Note.KeyPressDuration = MainWindow.KeyDelay;
                     Log($"FPS adjustment reset. Key press duration set to default {Core.Note.KeyPressDuration}ms.");
                 }
             }
         }
+
         private void AutoTransposeToolStripMenuItem_Click(object sender, EventArgs e)
         {
             Core.Note.AutoTransposeEnabled = isAutoTranspositionEnabled;

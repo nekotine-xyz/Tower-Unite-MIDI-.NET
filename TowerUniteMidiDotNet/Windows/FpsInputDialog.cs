@@ -67,26 +67,27 @@ namespace TowerUniteMidiDotNet
             this.Close();
         }
 
-        // this method updates the KeyPressDuration based on the provided FPS
-        public static void UpdateKeyPressDurationFromFPS(int fps)
+        public static int CalculateKeyPressDuration(int fps)
         {
-            // assuming 60 FPS is the baseline for no additional delay
-            int baseDelay = MainWindow.KeyDelay;
+            int fps1 = 60;
+            int keyDuration1 = 20;
+            int fps2 = 30;
+            int keyDuration2 = 40;
 
-            // calculate the scaling factor based on the FPS. 
-            // the formula here is a placeholder, testing needed
-            // if FPS is 30, the delay might be double the base delay.
-            int scalingFactor = 60 / Math.Max(fps, 1); // avoid division by zero
+            // linear interpolation formula
+            int interpolatedDuration = keyDuration1 + (keyDuration2 - keyDuration1) * (fps - fps1) / (fps2 - fps1);
 
-            // apply the scaling factor
-            int newDelay = baseDelay * scalingFactor;
+            // clamp the value to a reasonable range if necessary
+            int minDuration = 10; // minimum duration
+            int maxDuration = 100; // maximum duration
+            return Clamp(interpolatedDuration, minDuration, maxDuration);
+        }
 
-            // set a minimum and maximum bounds for delay
-            int minDelay = 8; // minimum delay in ms
-            int maxDelay = 100; // maximum delay in ms, this value is arbitrary and should be adjusted based on testing
-
-            // clamp the new delay between the min and max bounds
-            Note.KeyPressDuration = Clamp(newDelay, minDelay, maxDelay);
+        public static int UpdateKeyPressDurationFromFPS(int fps)
+        {
+            int newKeyPressDuration = CalculateKeyPressDuration(fps);
+            Note.KeyPressDuration = newKeyPressDuration;
+            return newKeyPressDuration;
         }
 
         private static int Clamp(int value, int min, int max)
