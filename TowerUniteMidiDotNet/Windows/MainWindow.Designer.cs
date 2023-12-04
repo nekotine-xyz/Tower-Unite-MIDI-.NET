@@ -62,6 +62,7 @@
             this.creditsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.ToolTipController = new System.Windows.Forms.ToolTip(this.components);
             this.checkboxDrums = new System.Windows.Forms.CheckBox();
+            this.label7 = new System.Windows.Forms.Label();
             this.TabControl.SuspendLayout();
             this.tabPage1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.OctaveTranspositionSlider)).BeginInit();
@@ -184,6 +185,7 @@
             // 
             // tabPage2
             // 
+            this.tabPage2.Controls.Add(this.label7);
             this.tabPage2.Controls.Add(this.label6);
             this.tabPage2.Controls.Add(this.progressBar1);
             this.tabPage2.Controls.Add(this.label4);
@@ -404,6 +406,15 @@
             this.checkboxDrums.UseVisualStyleBackColor = true;
             this.checkboxDrums.CheckedChanged += new System.EventHandler(this.CheckboxDrums_CheckedChanged);
             // 
+            // label7
+            // 
+            this.label7.AutoSize = true;
+            this.label7.Location = new System.Drawing.Point(335, 155);
+            this.label7.Name = "label7";
+            this.label7.Size = new System.Drawing.Size(51, 20);
+            this.label7.TabIndex = 9;
+            this.label7.Text = "label7";
+            // 
             // MainWindow
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(9F, 20F);
@@ -470,5 +481,6 @@
         private System.Windows.Forms.ToolStripMenuItem autoTransposeToolStripMenuItem;
         private System.Windows.Forms.Label label6;
         private System.Windows.Forms.ProgressBar progressBar1;
+        private System.Windows.Forms.Label label7;
     }
 }

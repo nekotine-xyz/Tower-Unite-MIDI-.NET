@@ -52,6 +52,7 @@ namespace TowerUniteMidiDotNet.Windows
 			{ 36, VirtualKeyCode.SPACE }, // Bass Drum 1 -> Kick
             { 37, VirtualKeyCode.VK_G }, // Side Stick -> Snare Rim
             { 54, VirtualKeyCode.VK_G }, // Tambourine -> Snare Rim
+            { 56, VirtualKeyCode.VK_G }, // Cowbell -> Snare Rim
             { 82, VirtualKeyCode.VK_G }, // Shaker -> Snare Rim
 			{ 38, VirtualKeyCode.VK_F }, // Acoustic Snare -> Snare
 			{ 40, VirtualKeyCode.VK_F }, // Electric Snare -> Snare
@@ -109,9 +110,18 @@ namespace TowerUniteMidiDotNet.Windows
                 Interval = 100
             };
             playbackTimer.Tick += new EventHandler(PlaybackTimer_Tick);
-            MIDIPlaybackSpeedSlider.Value = 10;
+            MIDIPlaybackSpeedSlider.Minimum = 4; // corresponds to 0.2x speed
+            MIDIPlaybackSpeedSlider.Maximum = 40; // corresponds to 2x speed
+            MIDIPlaybackSpeedSlider.SmallChange = 1; // increment by 0.05x
+            MIDIPlaybackSpeedSlider.LargeChange = 2; // larger increment, e.g., when clicking the slider track
+            MIDIPlaybackSpeedSlider.Value = 20;
+            MIDIPlaybackSpeedSlider.MouseWheel += MIDIPlaybackSpeedSlider_MouseWheel;
             MIDIPlaybackTransposeSlider.Value = 0;
+            MIDIPlaybackTransposeSlider.MouseWheel += MIDIPlaybackTransposeSlider_MouseWheel;
             OctaveTranspositionSlider.Value = 0;
+            OctaveTranspositionSlider.MouseWheel += OctaveTranspositionSlider_MouseWheel;
+            label7.Text = "100%";
+
             try
             {
                 HotkeyManager.Current.AddOrReplace("Start", startKey, OnHotkeyPress);
@@ -149,7 +159,7 @@ namespace TowerUniteMidiDotNet.Windows
             }
             foreach (InputDevice device in devices)
             {
-                DeviceComboBox.Items.Add(device.Name); // Only the device name is added
+                DeviceComboBox.Items.Add(device.Name); // only the device name is added
             }
         }
 
@@ -205,36 +215,65 @@ namespace TowerUniteMidiDotNet.Windows
         {
             try
             {
-                if (currentMidiFile == null || currentMidiFile.MidiPlayback.IsRunning)
+                if (currentMidiFile == null)
                 {
-                    return;
+                    return; // no MIDI file is loaded
                 }
-                else if (currentMidiFile != null)
+
+                if (currentMidiFile.MidiPlayback.IsRunning)
                 {
-                    currentMidiFile.MidiPlayback.Finished -= OnMidiPlaybackComplete;
-
-                    currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
+                    // pause playback
+                    currentMidiFile.MidiPlayback.Stop();
+                    isMidiPlaying = false;
+                    MIDIPlayButton.Text = "Play";
+                    Log("Paused MIDI playback.");
                 }
-                var duration = currentMidiFile.MidiFile.GetDuration<MetricTimeSpan>();
-                progressBar1.Maximum = (int)duration.TotalMicroseconds;
-                progressBar1.Value = 0;
-
-                MIDIPlaybackTransposeSlider.Enabled = false;
-                MIDIPlaybackSpeedSlider.Enabled = false;
-
-                currentMidiFile.MidiPlayback.NotesPlaybackStarted += OnMidiPlaybackNoteEventReceived;
-                currentMidiFile.MidiPlayback.Finished += OnMidiPlaybackComplete;
-                currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
-                currentMidiFile.MidiPlayback.Start();
-                isMidiPlaying = true;
-                playbackTimer.Start();
-
-                Log($"Started playing {currentMidiFile.MidiName}.");
+                else
+                {
+                    if (isMidiPlaying)
+                    {
+                        // resume playback
+                        currentMidiFile.MidiPlayback.Start();
+                        MIDIPlayButton.Text = "Pause";
+                        playbackTimer.Start(); // Ensure the timer is running
+                        Log("Resumed MIDI playback.");
+                    }
+                    else
+                    {
+                        // start playback from the beginning
+                        StartMidiPlayback();
+                    }
+                }
             }
             catch (Exception ex)
             {
                 Log($"Error during MIDI playback: {ex.Message}");
             }
+        }
+
+        private void StartMidiPlayback()
+        {
+            // detach any existing event handlers to avoid multiple subscriptions
+            currentMidiFile.MidiPlayback.Finished -= OnMidiPlaybackComplete;
+            currentMidiFile.MidiPlayback.NotesPlaybackStarted -= OnMidiPlaybackNoteEventReceived;
+
+            // set up MIDI playback
+            var duration = currentMidiFile.MidiFile.GetDuration<MetricTimeSpan>();
+            progressBar1.Maximum = (int)duration.TotalMicroseconds;
+            progressBar1.Value = 0;
+
+            MIDIPlaybackTransposeSlider.Enabled = false;
+            // MIDIPlaybackSpeedSlider.Enabled = false;
+
+            currentMidiFile.MidiPlayback.NotesPlaybackStarted += OnMidiPlaybackNoteEventReceived;
+            currentMidiFile.MidiPlayback.Finished += OnMidiPlaybackComplete;
+            currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
+            currentMidiFile.MidiPlayback.Start();
+            isMidiPlaying = true;
+            playbackTimer.Start();
+            MIDIPlayButton.Text = "Pause";
+
+            Log($"Started playing {currentMidiFile.MidiName}.");
         }
 
         private void OnMidiPlaybackNoteEventReceived(object sender, NotesEventArgs e)
@@ -301,19 +340,27 @@ namespace TowerUniteMidiDotNet.Windows
                 this.Invoke(new Action(StopMidi));
                 return;
             }
+
             lock (playbackLock)
             {
-                if (isMidiPlaying && currentMidiFile?.MidiPlayback.IsRunning == true)
+                if (currentMidiFile != null)
                 {
                     try
                     {
+                        // enable the sliders as playback is stopped
                         MIDIPlaybackTransposeSlider.Enabled = true;
                         MIDIPlaybackSpeedSlider.Enabled = true;
+
+                        // stop the playback and reset to the start
                         currentMidiFile.MidiPlayback.Stop();
                         currentMidiFile.MidiPlayback.MoveToStart();
+
+                        // reset the state and UI elements
                         isMidiPlaying = false;
                         playbackTimer.Stop();
                         progressBar1.Value = 0;
+                        MIDIPlayButton.Text = "Play"; // update button label
+
                         Log($"Stopped playing {currentMidiFile.MidiName}.");
                     }
                     catch (Exception ex)
@@ -471,7 +518,7 @@ namespace TowerUniteMidiDotNet.Windows
                                 Log($"Piano note out of range: MIDI number {originalNoteNumber} cannot be played in Tower Unite.");
                             }));
                         }
-                        // handle other MIDI events as needed
+                     // handle other MIDI events as needed
                     }
                 }
             }
@@ -511,10 +558,18 @@ namespace TowerUniteMidiDotNet.Windows
                     }
                     else
                     {
-                        if (MIDIPlayButton.Enabled)
+                        if (!currentMidiFile?.MidiPlayback.IsRunning ?? false)
                         {
-                            // Restart MIDI playback from the beginning
-                            RestartMidi();
+                            // if the MIDI playback is not running, either start or resume playback
+                            PlayMidi();
+                        }
+                        else
+                        {
+                            // if the MIDI playback is running, pause it
+                            currentMidiFile.MidiPlayback.Stop();
+                            isMidiPlaying = false;
+                            MIDIPlayButton.Text = "Play";
+                            Log("Paused MIDI playback.");
                         }
                     }
                     break;
@@ -534,17 +589,6 @@ namespace TowerUniteMidiDotNet.Windows
                         }
                     }
                     break;
-            }
-        }
-
-        private void RestartMidi()
-        {
-            StopMidi();
-            if (currentMidiFile != null)
-            {
-                currentMidiFile.MidiPlayback.MoveToStart();
-
-                PlayMidi();
             }
         }
 
@@ -672,13 +716,30 @@ namespace TowerUniteMidiDotNet.Windows
 
         private void MIDIPlaybackSpeedSlider_ValueChanged(object sender, EventArgs e)
         {
-            midiPlaybackSpeed = MIDIPlaybackSpeedSlider.Value / 10.0;
-            ToolTipController.SetToolTip((TrackBar)sender, midiPlaybackSpeed.ToString() + "x");
+            midiPlaybackSpeed = MIDIPlaybackSpeedSlider.Value * 0.05;
+            label7.Text = $"{(midiPlaybackSpeed * 100):F0}%"; // display speed as percentage
 
             if (currentMidiFile != null)
             {
                 currentMidiFile.MidiPlayback.Speed = midiPlaybackSpeed;
             }
+        }
+
+        private void MIDIPlaybackSpeedSlider_MouseWheel(object sender, MouseEventArgs e)
+        {
+            midiPlaybackSpeed = Math.Max(0.05, MIDIPlaybackSpeedSlider.Value / 20.0); // setup for a replacement of the sliders to make room for other UI elements
+
+            if (e.Delta > 0) // scrolling up
+            {
+                MIDIPlaybackSpeedSlider.Value = Math.Min(MIDIPlaybackSpeedSlider.Maximum, MIDIPlaybackSpeedSlider.Value + 1);
+            }
+            else if (e.Delta < 0) // scrolling down
+            {
+                MIDIPlaybackSpeedSlider.Value = Math.Max(MIDIPlaybackSpeedSlider.Minimum, MIDIPlaybackSpeedSlider.Value - 1);
+            }
+
+            // prevents focus shift to the slider on scroll
+            ((HandledMouseEventArgs)e).Handled = true;
         }
 
         private void MIDIPlaybackTransposeSlider_ValueChanged(object sender, EventArgs e)
@@ -695,6 +756,24 @@ namespace TowerUniteMidiDotNet.Windows
             midiTransposition = MIDIPlaybackTransposeSlider.Value;
         }
 
+        private void MIDIPlaybackTransposeSlider_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (e.Delta > 0) // scrolling up
+            {
+                MIDIPlaybackTransposeSlider.Value = Math.Min(MIDIPlaybackTransposeSlider.Maximum, MIDIPlaybackTransposeSlider.Value + 1);
+            }
+            else if (e.Delta < 0) // scrolling down
+            {
+                MIDIPlaybackTransposeSlider.Value = Math.Max(MIDIPlaybackTransposeSlider.Minimum, MIDIPlaybackTransposeSlider.Value - 1);
+            }
+
+            // update the transposition based on the slider's value
+            midiTransposition = MIDIPlaybackTransposeSlider.Value;
+
+            // prevents focus shift to the slider on scroll
+            ((HandledMouseEventArgs)e).Handled = true;
+        }
+
         private void OctaveTranspositionSlider_ValueChanged(object sender, EventArgs e)
         {
             if (OctaveTranspositionSlider.Value > 0)
@@ -709,6 +788,22 @@ namespace TowerUniteMidiDotNet.Windows
             noteLookupOctaveTransposition = 3 + OctaveTranspositionSlider.Value;
             BuildNoteDictionary();
         }
+
+        private void OctaveTranspositionSlider_MouseWheel(object sender, MouseEventArgs e)
+        {
+            if (e.Delta > 0) // scrolling up
+            {
+                OctaveTranspositionSlider.Value = Math.Min(OctaveTranspositionSlider.Maximum, OctaveTranspositionSlider.Value + 1);
+            }
+            else if (e.Delta < 0) // scrolling down
+            {
+                OctaveTranspositionSlider.Value = Math.Max(OctaveTranspositionSlider.Minimum, OctaveTranspositionSlider.Value - 1);
+            }
+
+            // prevents focus shift to the slider on scroll
+            ((HandledMouseEventArgs)e).Handled = true;
+        }
+
         private void CreditsToolStripMenuItem_Click(object sender, EventArgs e)
         {
             using (var creditsForm = new CreditsForm())
