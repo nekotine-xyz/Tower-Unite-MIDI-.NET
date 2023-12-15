@@ -104,10 +104,11 @@ namespace TowerUniteMidiDotNet.Core
                 // wip
             }
         }
+        // leftover to shit code that couldn't be implemented to properly dynamically adjust transposition for whatever reason. might repurpose it?
         public static int TransposeToPlayableRange(int noteNumber)
         {
-            while (noteNumber < 36) noteNumber += 12; // Transpose up an octave if too low
-            while (noteNumber > 96) noteNumber -= 12; // Transpose down an octave if too high
+            while (noteNumber < 36) noteNumber += 12; // transpose up an octave if too low
+            while (noteNumber > 96) noteNumber -= 12; // transpose down an octave if too high
             return noteNumber;
         }
     }
